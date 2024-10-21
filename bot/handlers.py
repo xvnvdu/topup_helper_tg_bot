@@ -6,12 +6,12 @@ from aiogram.handlers import CallbackQueryHandler
 from aiogram import F, Router, types, Bot
 from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, PreCheckoutQuery, CallbackQuery
 
-from bot.main_callbacks import main_callbacks
-from crypto.wallet_page_maker import main_page
 from crypto.fund_wallet import fund
-from crypto.withdraw_wallet import address_input, try_another_address, withdraw_choice, amount_to_withdraw
+from crypto.wallet_page_maker import main_page
+from crypto.withdraw_wallet import address_input, withdraw_choice, amount_to_withdraw
 from crypto.main_crypto import create_new_wallet, CryptoPayments, pending_chain_fund, ok_to_fund, ok_to_withdraw
 
+from .main_callbacks import main_callbacks
 from .payments import rub_custom, stars_custom
 from .send_to_user import amount_input, id_input, message_input
 from .main_bot import (users_data, users_payments, users_data_dict, users_payments_dict,

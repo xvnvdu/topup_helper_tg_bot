@@ -1,9 +1,8 @@
-from typing import Any
 import web3
 from web3 import Web3
+from typing import Any
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
-from datetime import datetime
 
 from config import bot_wallet_pk as pk, bot_wallet_address as adr
 from bot.main_bot import id_generator, save_data, save_payments, save_total, users_data_dict, total_values, users_payments_dict

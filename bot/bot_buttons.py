@@ -1,7 +1,7 @@
 from typing import Any
-from aiogram.handlers import CallbackQueryHandler
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, reply_keyboard_markup
 from crypto.models import Currencies
+from aiogram.handlers import CallbackQueryHandler
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
 menu_buttons = [

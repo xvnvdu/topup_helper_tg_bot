@@ -1,8 +1,8 @@
 import requests
 from web3 import Web3
 
-from .price_parser import return_matic_price, return_eth_price, return_arb_price, return_op_price
 from .main_crypto import today, time_now
+from .price_parser import return_matic_price, return_eth_price, return_arb_price, return_op_price
 
 
 contracts = {

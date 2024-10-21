@@ -1,5 +1,5 @@
-from aiogram.handlers import CallbackQueryHandler
 from datetime import datetime
+from aiogram.handlers import CallbackQueryHandler
 
 from .main_bot import users_payments_dict
 

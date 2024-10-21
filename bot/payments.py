@@ -1,9 +1,10 @@
-from config import yookassa_test_token
 from aiogram import Bot, Router
-from aiogram.handlers import CallbackQueryHandler
-from aiogram.types import LabeledPrice, Message, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
+from aiogram.handlers import CallbackQueryHandler
+
+from config import yookassa_test_token
 from .main_bot import pending_payments, pending_payments_info
+from aiogram.types import LabeledPrice, Message, InlineKeyboardButton, InlineKeyboardMarkup
 
 
 router = Router()

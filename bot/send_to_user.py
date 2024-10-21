@@ -1,4 +1,3 @@
-from datetime import datetime
 from aiogram import Bot, Router
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext

@@ -1,7 +1,7 @@
 from web3 import Web3
 from typing import Any
-from aiogram.fsm.state import StatesGroup, State
 from datetime import datetime
+from aiogram.fsm.state import StatesGroup, State
 
 
 ok_to_fund = {}

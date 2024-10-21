@@ -1,15 +1,11 @@
-
 from web3 import Web3
-from datetime import datetime
-from decimal import Decimal, ROUND_DOWN
+from aiogram.types import Message
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
 
-from config import bot_wallet_pk as pk, bot_wallet_address as adr
 from bot.main_bot import id_generator, users_data_dict, users_payments_dict, total_values, save_data, save_total, save_payments
-from bot.bot_buttons import (crypto_amount_to_withdraw, successful_wallet_withdrawal, try_again_withdraw_amount, 
-                             change_withdraw_amount, try_again_address_input_keyboard, confirm_withdrawal)
+from bot.bot_buttons import (crypto_amount_to_withdraw, successful_wallet_withdrawal, try_again_withdraw_amount, change_withdraw_amount, 
+                             try_again_address_input_keyboard, confirm_withdrawal)
 
 from .models import Networks, Currencies
 from .get_balance_func import get_native_balance, get_token_balance
