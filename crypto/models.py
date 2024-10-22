@@ -1,7 +1,7 @@
 import requests
 from web3 import Web3
+from datetime import datetime
 
-from .main_crypto import today, time_now
 from .price_parser import return_matic_price, return_eth_price, return_arb_price, return_op_price
 
 
@@ -110,6 +110,9 @@ class Network:
         self.explorer = explorer
         self.explorer_link = explorer_link
 
+        today = datetime.now().strftime('%d.%m.%Y')
+        time_now = datetime.now().strftime('%H:%M:%S')
+        
         if not self.chain_id:
             try:
                 self.chain_id = Web3(Web3.HTTPProvider(self.rpc)).eth.chain_id

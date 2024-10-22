@@ -10,7 +10,7 @@ from bot.bot_buttons import (crypto_amount_to_withdraw, successful_wallet_withdr
 from .models import Networks, Currencies, DefaultABIs
 from .get_balance_func import get_native_balance, get_token_balance
 from .main_crypto import (CryptoPayments, pending_crypto_withdraw_amount, pending_chain_withdraw, pending_withdrawal_trx, 
-                          pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, today, time_now, pending_user_balance_in_usd, pending_withdraw_trx_id)
+                          pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, pending_user_balance_in_usd, pending_withdraw_trx_id, get_time)
 
 
 async def withdraw_choice(call: CallbackQuery):
@@ -146,6 +146,7 @@ async def address_input(message: Message, state: FSMContext):
 	currency = pending_currency_to_withdraw[user_id]
 	native_currency = Networks.networks[chain].coin_symbol
 	amount = float(pending_crypto_withdraw_amount[user_id])
+	amount_to_show = withdraw_amount_to_show[user_id]
 	usd_value = withdraw_amount_usd_value[user_id] if user_id in withdraw_amount_usd_value else None
 	add_usd_value = '' if Currencies.currencies[chain][currency].return_price is None else f' <i>({usd_value}$)</i>'
 
@@ -170,8 +171,6 @@ async def address_input(message: Message, state: FSMContext):
 			abi = DefaultABIs.Token
 			contract_address = Currencies.currencies[chain][currency].contract
 			decimals = Currencies.currencies[chain][currency].decimals
-			print(decimals)
-			print(amount)
 			contract = web3.eth.contract(address=contract_address, abi=abi)
 			value = int(amount * decimals)
 
@@ -186,6 +185,7 @@ async def address_input(message: Message, state: FSMContext):
 			tx['gas'] = estimated_gas
 	
 		except Exception as e:
+			today, time_now = await get_time()
 			await loading.edit_text('<strong>⚠️ Недостаточно средств для оплаты комиссии.</strong>\n'
 						'<i>Уменьшите сумму вывода или попробуйте позже.</i>', 
 								parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
@@ -207,7 +207,7 @@ async def address_input(message: Message, state: FSMContext):
 		else:
 			ok_to_withdraw[user_id] = True
 			await loading.edit_text(f'<strong>🌐 Сеть перевода: <code>{chain}</code>\n'
-                        f'💸 Сумма перевода: <code>{amount} {currency}</code></strong>{add_usd_value}\n'
+                        f'💸 Сумма перевода: <code>{amount_to_show} {currency}</code></strong>{add_usd_value}\n'
                         f'<strong>📒 Получатель: <code>{reciever}</code>\n\n'
                         f'⛽️ Цена газа: <code>{f"{gas_price:.5f}".rstrip("0").rstrip(".")} GWei</code> \n'
                         f'💳 Комиссия: <code>{f"{trx_fee:.9f}".rstrip("0")} {native_currency}</code></strong> '
@@ -224,6 +224,8 @@ async def withdrawal_confirmed(call: CallbackQuery):
 	user_id = call.from_user.id
 	user_payments = users_payments_dict[user_id]['Transactions']
 
+	today, time_now = await get_time()
+	
 	if user_id in withdraw_amount_usd_value:
 		amount_usd = withdraw_amount_usd_value[user_id]
 	else:
@@ -291,6 +293,7 @@ async def withdraw_crypto(call: CallbackQuery, chain):
 	web3 = Web3(Web3.HTTPProvider(rpc))
 
 	if not web3.is_connected():
+		today, time_now = await get_time()
 		raise Exception(f'{today} | {time_now} | Ошибка подключения к сети {chain} | Пользователь: {user_id}')
 
 	else:

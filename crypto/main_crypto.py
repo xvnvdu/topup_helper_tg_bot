@@ -25,8 +25,10 @@ pending_currency_to_withdraw = {}
 pending_crypto_withdraw_amount = {}
 
 
-today = datetime.now().strftime('%d.%m.%Y')
-time_now = datetime.now().strftime('%H:%M:%S')
+async def get_time() -> Any:
+    today = datetime.now().strftime('%d.%m.%Y')
+    time_now = datetime.now().strftime('%H:%M:%S')
+    return today, time_now
 
 
 class CryptoPayments(StatesGroup):

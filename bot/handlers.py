@@ -11,12 +11,12 @@ from crypto.wallet_page_maker import main_page
 from crypto.withdraw_wallet import address_input, buttons_withdraw_handler, withdraw_choice, amount_to_withdraw
 from crypto.main_crypto import create_new_wallet, CryptoPayments, pending_chain_fund, ok_to_fund, ok_to_withdraw
 
-from .main_callbacks import main_callbacks
+from .callbacks import main_callbacks
 from .payments import rub_custom, stars_custom
 from .send_to_user import amount_input, id_input, message_input
 from .main_bot import (users_data, users_payments, users_data_dict, users_payments_dict,
                   save_data, save_payments, total_values, save_total, id_generator, CustomPaymentState, 
-                  SendToFriend, pending_payments, pending_payments_info, today, time_now)
+                  SendToFriend, pending_payments, pending_payments_info, get_time)
 from .bot_buttons import (menu_keyboard, account_keyboard, payment_keyboard, crypto_keyboard, withdraw_crypto, back_to_chain_keyboard)
 
 
@@ -142,7 +142,6 @@ async def successful_payment(message: Message):
     user_id = message.from_user.id
     user_data = users_data_dict[user_id]
     user_payment = users_payments_dict[user_id]['Transactions']
-    print(pending_payments, 'я тут')
     await message.answer('<strong>Оплата успешная 🎉</strong>\n<i>Примечание: '
                          'не используйте одну и ту же ссылку на пополнение дважды, '
                          'ваша оплата не будет засчитана!</i>', parse_mode='HTML')
@@ -156,8 +155,11 @@ async def successful_payment(message: Message):
         trx_num = total_values['Total_transactions_count']
         user_data['Balance'] += amount
         user_data['Funding_volume'] += amount
+        
         await save_total()
         await save_data()
+        
+        today, time_now = await get_time()
         if today not in user_payment:
             user_payment[today] = {time_now: {'RUB': amount,
                                               'USD': 0,
@@ -172,7 +174,6 @@ async def successful_payment(message: Message):
             await save_payments()
         del pending_payments_info[user_id]
         del pending_payments[user_id]
-        print(pending_payments)
 
 
 @router.message(F.contact)

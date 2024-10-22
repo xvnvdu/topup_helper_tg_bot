@@ -11,7 +11,7 @@ from bot.bot_buttons import successful_wallet_fund, try_again_crypto_amount_keyb
 from .models import Networks
 from .price_parser import return_eth_price, return_matic_price, return_usd_price
 from .main_crypto import (pending_chain_fund, pending_crypto_fund_amount, pending_fund_info, 
-                          pending_rub_amount, ok_to_fund, today, time_now, pending_fund_trx_id)
+                          pending_rub_amount, ok_to_fund, pending_fund_trx_id, get_time)
 
 
 async def fund(message: Message, state: FSMContext):
@@ -93,6 +93,7 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
         await save_total()
         await save_data()
 
+        today, time_now = await get_time()
         if today not in user_payments:
             user_payments[today] = {time_now: {'RUB': amount_rub,
                                                'USD': 0,
@@ -149,6 +150,7 @@ async def send_crypto(call: CallbackQuery, chain) -> Any:
     web3 = Web3(Web3.HTTPProvider(rpc))
 
     if not web3.is_connected():
+        today, time_now = await get_time()
         raise Exception(f'{today} | {time_now} Ошибка подключения к сети {chain}. Пользователь: {user_id}')
 
     else:

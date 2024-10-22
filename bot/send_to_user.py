@@ -9,7 +9,7 @@ from .bot_buttons import (try_again_amount_keyboard, step_back_keyboard, try_aga
                           skip_message_keyboard, confirm_sending_keyboard, try_again_message_keyboard)
 from .main_bot import (id_generator, total_values, save_total, save_data, save_payments, 
                        users_payments_dict, users_data_dict, pending_sending_amount, pending_sending_id, 
-                       pending_recieving_info, pending_sending_info, pending_sending_message, today, time_now)
+                       pending_recieving_info, pending_sending_info, pending_sending_message, get_time)
 
 
 router = Router()
@@ -139,6 +139,7 @@ async def send_to_user(call: CallbackQueryHandler, bot: Bot, state: FSMContext):
         await save_total()
         await save_data()
 
+        today, time_now = await get_time()
         if today not in sender_payments:
             sender_payments[today] = {time_now: {'RUB': amount,
                                                  'USD': 0,
