@@ -90,11 +90,11 @@ def try_again_crypto_amount_keyboard(chain) -> Any:
         inline_keyboard=[[InlineKeyboardButton(text='📈 Внести средства', callback_data=f'{chain}_fund')]]
     )
 
-def confirm_fund_wallet(chain) -> Any:
+def confirm_fund_wallet(chain, trx_id) -> Any:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text='❌ Нет', callback_data=f'{chain}_fund'),
-            InlineKeyboardButton(text='✅ Да', callback_data='confirm_funding')]
+            InlineKeyboardButton(text='✅ Да', callback_data=f'confirm_funding_id_{trx_id}')]
         ]
     )
 
@@ -167,11 +167,11 @@ try_again_address_input_keyboard = InlineKeyboardMarkup(
 )
 
 
-def confirm_withdrawal() -> Any:
+def confirm_withdrawal(trx_id: str):
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text='❌ Нет', callback_data='change_withdraw_address'),
-            InlineKeyboardButton(text='✅ Да', callback_data='withdrawal_confirmed')]
+            InlineKeyboardButton(text='✅ Да', callback_data=f'withdrawal_confirmed_id_{trx_id}')]
         ]
     )
 

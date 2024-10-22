@@ -8,14 +8,15 @@ ok_to_fund = {}
 pending_fund_info = {}
 pending_chain_fund = {}
 pending_rub_amount = {}
+pending_fund_trx_id = {}
 pending_crypto_fund_amount = {}
-
 
 ok_to_withdraw = {}
 pending_user_balance = {}
 pending_withdraw_info = {}
 pending_chain_withdraw = {}
 pending_withdrawal_trx = {}
+pending_withdraw_trx_id = {}
 withdraw_amount_to_show = {}
 withdraw_amount_usd_value = {}
 pending_user_balance_in_usd = {}

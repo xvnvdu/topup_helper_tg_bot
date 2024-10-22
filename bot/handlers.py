@@ -241,6 +241,7 @@ async def callback_currency_withdraw(call: CallbackQueryHandler, state: FSMConte
 @router.callback_query(lambda call: 'percent' in call.data)
 async def callback_currency_withdraw(call: CallbackQueryHandler, state: FSMContext):
     await buttons_withdraw_handler(call)
+    await state.set_state(CryptoPayments.address_withdraw_to)
     
 
 @router.message(CryptoPayments.amount_to_withdraw)

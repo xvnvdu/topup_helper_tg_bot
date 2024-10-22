@@ -7,10 +7,10 @@ from bot.main_bot import id_generator, users_data_dict, users_payments_dict, tot
 from bot.bot_buttons import (crypto_amount_to_withdraw, successful_wallet_withdrawal, try_again_withdraw_amount, change_withdraw_amount, 
                              try_again_address_input_keyboard, confirm_withdrawal)
 
-from .models import Networks, Currencies
+from .models import Networks, Currencies, DefaultABIs
 from .get_balance_func import get_native_balance, get_token_balance
 from .main_crypto import (CryptoPayments, pending_crypto_withdraw_amount, pending_chain_withdraw, pending_withdrawal_trx, 
-                          pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, today, time_now, pending_user_balance_in_usd)
+                          pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, today, time_now, pending_user_balance_in_usd, pending_withdraw_trx_id)
 
 
 async def withdraw_choice(call: CallbackQuery):
@@ -145,9 +145,9 @@ async def address_input(message: Message, state: FSMContext):
 	chain = pending_chain_withdraw[user_id]
 	currency = pending_currency_to_withdraw[user_id]
 	native_currency = Networks.networks[chain].coin_symbol
-	amount = pending_crypto_withdraw_amount[user_id]
+	amount = float(pending_crypto_withdraw_amount[user_id])
 	usd_value = withdraw_amount_usd_value[user_id] if user_id in withdraw_amount_usd_value else None
-	add_usd_value = '' if usd_value is None else f' <i>({usd_value}$)</i>'
+	add_usd_value = '' if Currencies.currencies[chain][currency].return_price is None else f' <i>({usd_value}$)</i>'
 
 	is_valid = Web3.is_address(reciever)
 
@@ -161,13 +161,26 @@ async def address_input(message: Message, state: FSMContext):
 		tx = {
 		'nonce': web3.eth.get_transaction_count(sender),
 		'from': sender,
-		'to': reciever,
-		'value': web3.to_wei(amount, 'ether'),
 		'maxFeePerGas': gas_price_wei,
 		'maxPriorityFeePerGas': max_priority_fee,
 		'chainId': web3.eth.chain_id
 	}
 
+		if currency != native_currency:
+			abi = DefaultABIs.Token
+			contract_address = Currencies.currencies[chain][currency].contract
+			decimals = Currencies.currencies[chain][currency].decimals
+			print(decimals)
+			print(amount)
+			contract = web3.eth.contract(address=contract_address, abi=abi)
+			value = int(amount * decimals)
+
+			transfer_func = contract.functions.transfer(reciever, value)
+			tx = transfer_func.build_transaction(tx)
+		else:
+			tx['to'] = reciever
+			tx['value'] = web3.to_wei(amount, 'ether')
+   
 		try:
 			estimated_gas = web3.eth.estimate_gas(tx)
 			tx['gas'] = estimated_gas
@@ -183,6 +196,9 @@ async def address_input(message: Message, state: FSMContext):
 
 		trx_fee = web3.from_wei(gas_price_wei * estimated_gas, "ether")
 	
+		trx_id = await id_generator()
+		pending_withdraw_trx_id[user_id] = trx_id
+  
 		trx_fee_usd = float(trx_fee) * await return_usd_fee()
 
 		if reciever.lower() == sender.lower():
@@ -196,7 +212,7 @@ async def address_input(message: Message, state: FSMContext):
                         f'⛽️ Цена газа: <code>{f"{gas_price:.5f}".rstrip("0").rstrip(".")} GWei</code> \n'
                         f'💳 Комиссия: <code>{f"{trx_fee:.9f}".rstrip("0")} {native_currency}</code></strong> '
                         f'<i>({f"{trx_fee_usd:.5f}".rstrip("0")}$)</i>\n\n'
-                        f'<strong>Подтверждаете?</strong>', parse_mode='HTML', reply_markup=confirm_withdrawal())
+                        f'<strong>Подтверждаете?</strong>', parse_mode='HTML', reply_markup=confirm_withdrawal(trx_id))
 	else:
 		await loading.edit_text('<strong>⚠️ Адрес введен некорректно.</strong>\n'
                        '<i>Проверьте указанный адрес и попробуйте еще раз.</i>', 
@@ -208,7 +224,11 @@ async def withdrawal_confirmed(call: CallbackQuery):
 	user_id = call.from_user.id
 	user_payments = users_payments_dict[user_id]['Transactions']
 
-	amount_usd = withdraw_amount_usd_value[user_id]
+	if user_id in withdraw_amount_usd_value:
+		amount_usd = withdraw_amount_usd_value[user_id]
+	else:
+		amount_usd = pending_crypto_withdraw_amount[user_id]
+  
 	amount_crypto = pending_crypto_withdraw_amount[user_id]
 	chain = pending_chain_withdraw[user_id]
 	explorer = Networks.networks[chain].explorer
@@ -230,7 +250,7 @@ async def withdrawal_confirmed(call: CallbackQuery):
                                     f'— <code>{amount_crypto} {coin}</code>')
 
 		trx_info = pending_withdraw_info[user_id]
-		trx_id = await id_generator()
+		trx_id = pending_withdraw_trx_id[user_id]
 		total_values['Total_transactions_count'] += 1
 		trx_num = total_values['Total_transactions_count']
 
@@ -292,18 +312,41 @@ async def buttons_withdraw_handler(call: CallbackQuery):
 	amount = int(str(call.data).split('_')[0])
 	balance = pending_user_balance[user_id]
 	chain = pending_chain_withdraw[user_id]
-	coin = pending_currency_to_withdraw[user_id]
+	currency = pending_currency_to_withdraw[user_id]
 	usd_balance = float(pending_user_balance_in_usd[user_id])
-	user_amount = float(balance) * amount / 100
+	coin_price = Currencies.currencies[chain][currency].return_price
  
-	if coin == Networks.networks[chain].coin_symbol:
+	ok_to_withdraw[user_id] = False
+ 
+	user_amount = float(balance) * amount / 100
+	if currency == Networks.networks[chain].coin_symbol:
 		if amount == 100:
 			withdraw_in_usd = usd_balance * (1 - 1 / (usd_balance * 100))
 			user_amount = balance / usd_balance * withdraw_in_usd
 
+	pending_crypto_withdraw_amount[user_id] = user_amount
+	withdraw_amount_to_show[user_id] = user_amount
+ 
+	text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{user_amount} {currency}</code></i>'
+	if coin_price is not None:
+		coin_price = await coin_price()
+		usd_value = round(float(user_amount) * coin_price, 2)
+		withdraw_amount_usd_value[user_id] = usd_value
+		text += f' <i>({usd_value}$)</i>'
 
-			user_amount = f'{user_amount:.9f}'
-	print(user_amount)
+	await call.message.edit_text(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
+
+
+async def try_to_withdraw(call: CallbackQuery):
+    user_id = call.from_user.id
+    
+    if ok_to_withdraw[user_id]:
+        if f'{call.data}'.split('_')[3] == pending_withdraw_trx_id[user_id]:
+            await withdrawal_confirmed(call)
+        else:
+            await withdrawal_declined(call)
+    else:
+        await withdrawal_declined(call)
 
 
 async def withdrawal_declined(call: CallbackQuery):

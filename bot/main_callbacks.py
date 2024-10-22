@@ -5,9 +5,9 @@ from datetime import datetime
 from aiogram.fsm.context import FSMContext
 from aiogram.handlers import CallbackQueryHandler
 
-from crypto.main_crypto import CryptoPayments, ok_to_withdraw, ok_to_fund
-from crypto.fund_wallet import wallet_funding_confirmed, wallet_funding_declined
-from crypto.withdraw_wallet import try_another_address, withdrawal_confirmed, withdrawal_declined
+from crypto.fund_wallet import try_to_fund
+from crypto.main_crypto import CryptoPayments
+from crypto.withdraw_wallet import try_another_address, try_to_withdraw
 from crypto.wallet_page_maker import main_page, polygon_mainnet, arbitrum_mainnet, optimism_mainnet, base_mainnet
 
 from . import payments
@@ -139,21 +139,15 @@ async def main_callbacks(call: CallbackQueryHandler, bot: Bot, state: FSMContext
         text = await base_mainnet(call)
         await call.message.edit_text(text, parse_mode='HTML', reply_markup=chains_keyboard('Base'),
                                      disable_web_page_preview=True)
-    elif call.data == 'confirm_funding':
+    elif 'confirm_funding_id' in call.data:
         await call.message.edit_text('🕓 <strong>Ожидание...</strong>', parse_mode='HTML')
-        if ok_to_fund[user_id]:
-            await wallet_funding_confirmed(call)
-        else:
-            await wallet_funding_declined(call)
+        await try_to_fund(call)
     elif call.data == 'change_withdraw_address':
         await state.set_state(CryptoPayments.address_withdraw_to)
         await try_another_address(call)
-    elif call.data == 'withdrawal_confirmed':
+    elif 'withdrawal_confirmed_id' in call.data:
         await call.message.edit_text('🕓 <strong>Ожидание...</strong>', parse_mode='HTML')
-        if ok_to_withdraw[user_id]:
-            await withdrawal_confirmed(call)
-        else:
-            await withdrawal_declined(call)
+        await try_to_withdraw(call)
     elif call.data == 'back':
         await call.message.edit_text('<strong>Выберите нужное действие:</strong>',
                                      parse_mode='HTML', reply_markup=menu_keyboard)

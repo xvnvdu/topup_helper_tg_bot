@@ -10,7 +10,8 @@ from bot.bot_buttons import successful_wallet_fund, try_again_crypto_amount_keyb
 
 from .models import Networks
 from .price_parser import return_eth_price, return_matic_price, return_usd_price
-from .main_crypto import pending_chain_fund, pending_crypto_fund_amount, pending_fund_info, pending_rub_amount, ok_to_fund, today, time_now
+from .main_crypto import (pending_chain_fund, pending_crypto_fund_amount, pending_fund_info, 
+                          pending_rub_amount, ok_to_fund, today, time_now, pending_fund_trx_id)
 
 
 async def fund(message: Message, state: FSMContext):
@@ -42,12 +43,14 @@ async def fund(message: Message, state: FSMContext):
             user_recieve = f'{(amount / currency_price):.7f}'
             pending_crypto_fund_amount[user_id] = user_recieve
             pending_rub_amount[user_id] = amount
+            trx_id = await id_generator()
+            pending_fund_trx_id[user_id] = trx_id
             
             ok_to_fund[user_id] = True
                 
             await message.answer(f'<strong>🌐 Пополняемая сеть: <code>{chain}</code>\n💳 Сумма пополнения: <code>{amount}₽</code>\n\n'
                                  f'📊 Курс: <code>1 {native} = {currency_price}₽</code>\nИтого к пополнению: <code>{user_recieve} {native}</code>\n\n'
-                                 f'Подтверждаете?</strong>', parse_mode='HTML', reply_markup=confirm_fund_wallet(chain))
+                                 f'Подтверждаете?</strong>', parse_mode='HTML', reply_markup=confirm_fund_wallet(chain, trx_id))
     except ValueError:
         await message.answer('<strong>⚠️ Сумма введена некорректно, попробуйте еще раз.</strong>', 
                              parse_mode='HTML', reply_markup=try_again_crypto_amount_keyboard(chain))
@@ -82,7 +85,7 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
         pending_fund_info[user_id] = (f' Пополнение <a href="{exp_link}/tx/{trx_hash}">{chain}</a> '
                                         f'— <code>{amount_crypto} {native}</code>')
         trx_info = pending_fund_info[user_id]
-        trx_id = await id_generator()
+        trx_id = pending_fund_trx_id[user_id]
         total_values['Total_transactions_count'] += 1
         trx_num = total_values['Total_transactions_count']
         user_data['Balance'] -= amount_rub
@@ -119,6 +122,18 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
         ok_to_fund[user_id] = False
     except KeyError:
         pass
+
+
+async def try_to_fund(call: CallbackQuery):
+    user_id = call.from_user.id
+    
+    if ok_to_fund[user_id]:
+        if f'{call.data}'.split('_')[3] == pending_fund_trx_id[user_id]:
+            await wallet_funding_confirmed(call)
+        else:
+            await wallet_funding_declined(call)
+    else:
+        await wallet_funding_declined(call)
 
 
 async def wallet_funding_declined(call: CallbackQuery):
