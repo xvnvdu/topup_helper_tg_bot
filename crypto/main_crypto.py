@@ -18,6 +18,7 @@ pending_chain_withdraw = {}
 pending_withdrawal_trx = {}
 withdraw_amount_to_show = {}
 withdraw_amount_usd_value = {}
+pending_user_balance_in_usd = {}
 pending_address_to_withdraw = {}
 pending_currency_to_withdraw = {}
 pending_crypto_withdraw_amount = {}

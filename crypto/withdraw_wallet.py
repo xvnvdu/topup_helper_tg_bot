@@ -10,7 +10,7 @@ from bot.bot_buttons import (crypto_amount_to_withdraw, successful_wallet_withdr
 from .models import Networks, Currencies
 from .get_balance_func import get_native_balance, get_token_balance
 from .main_crypto import (CryptoPayments, pending_crypto_withdraw_amount, pending_chain_withdraw, pending_withdrawal_trx, 
-                          pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, today, time_now)
+                          pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, today, time_now, pending_user_balance_in_usd)
 
 
 async def withdraw_choice(call: CallbackQuery):
@@ -32,16 +32,22 @@ async def withdraw_choice(call: CallbackQuery):
  
 	if contract is None:
 		balance = await get_native_balance(rpc_url, wallet_address, decimals)
+		digits = 9
 	else:
 		balance = await get_token_balance(contract, rpc_url, wallet_address, decimals)
+		digits = 4
 
-	pending_user_balance[user_id] = balance
-	text = f'<strong>💸 Мои активы</strong> <i>{chain} — {currency}</i>: <code>{balance} {currency}</code>'
+	pending_user_balance[user_id] = float(f'{balance:.{digits}f}'.rstrip('0').rstrip('.'))
+	text = (f'<strong>💸 Мои активы</strong> <i>{chain} — {currency}</i>: '
+         f'<code>{f"{balance:.{digits}f}".rstrip("0").rstrip(".")} {currency}</code>')
 
 	if coin_price is not None:
 		coin_price = await coin_price()
 		usd_value = round(balance * coin_price, 2)
+		pending_user_balance_in_usd[user_id] = usd_value
 		text += f' <i>({usd_value}$)</i>'
+	else:
+		pending_user_balance_in_usd[user_id] = balance
 
 	text += f'\n\n<i>Выберите сумму для вывода или введите ее вручную:</i>'
 
@@ -62,9 +68,7 @@ async def amount_to_withdraw(message: Message, state: FSMContext):
 
 	try: 
 		await message.delete()
-		amount = user_amount
-		if len(str(amount)) > 9:
-			amount = f'{(float(user_amount)):.7f}'
+		amount = f'{(float(user_amount)):.12f}'.rstrip('0').rstrip('.')
 		withdraw_amount_to_show[user_id] = amount
   
 		if float(amount) <= 0:
@@ -189,8 +193,9 @@ async def address_input(message: Message, state: FSMContext):
 			await loading.edit_text(f'<strong>🌐 Сеть перевода: <code>{chain}</code>\n'
                         f'💸 Сумма перевода: <code>{amount} {currency}</code></strong>{add_usd_value}\n'
                         f'<strong>📒 Получатель: <code>{reciever}</code>\n\n'
-                        f'⛽️ Цена газа: <code>{gas_price} GWei</code> \n'
-                        f'💳 Комиссия: <code>{trx_fee} {native_currency}</code></strong> <i>({round(trx_fee_usd, 5)}$)</i>\n\n'
+                        f'⛽️ Цена газа: <code>{f"{gas_price:.5f}".rstrip("0").rstrip(".")} GWei</code> \n'
+                        f'💳 Комиссия: <code>{f"{trx_fee:.9f}".rstrip("0")} {native_currency}</code></strong> '
+                        f'<i>({f"{trx_fee_usd:.5f}".rstrip("0")}$)</i>\n\n'
                         f'<strong>Подтверждаете?</strong>', parse_mode='HTML', reply_markup=confirm_withdrawal())
 	else:
 		await loading.edit_text('<strong>⚠️ Адрес введен некорректно.</strong>\n'
@@ -279,6 +284,26 @@ async def withdraw_crypto(call: CallbackQuery, chain):
 
 		hash_hex = web3.to_hex(tx_hash)
 		return hash_hex
+
+
+async def buttons_withdraw_handler(call: CallbackQuery):
+	user_id = call.from_user.id
+
+	amount = int(str(call.data).split('_')[0])
+	balance = pending_user_balance[user_id]
+	chain = pending_chain_withdraw[user_id]
+	coin = pending_currency_to_withdraw[user_id]
+	usd_balance = float(pending_user_balance_in_usd[user_id])
+	user_amount = float(balance) * amount / 100
+ 
+	if coin == Networks.networks[chain].coin_symbol:
+		if amount == 100:
+			withdraw_in_usd = usd_balance * (1 - 1 / (usd_balance * 100))
+			user_amount = balance / usd_balance * withdraw_in_usd
+
+
+			user_amount = f'{user_amount:.9f}'
+	print(user_amount)
 
 
 async def withdrawal_declined(call: CallbackQuery):

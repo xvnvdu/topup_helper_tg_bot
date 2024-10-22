@@ -8,7 +8,7 @@ from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, PreCheck
 
 from crypto.fund_wallet import fund
 from crypto.wallet_page_maker import main_page
-from crypto.withdraw_wallet import address_input, withdraw_choice, amount_to_withdraw
+from crypto.withdraw_wallet import address_input, buttons_withdraw_handler, withdraw_choice, amount_to_withdraw
 from crypto.main_crypto import create_new_wallet, CryptoPayments, pending_chain_fund, ok_to_fund, ok_to_withdraw
 
 from .main_callbacks import main_callbacks
@@ -237,6 +237,11 @@ async def callback_currency_withdraw(call: CallbackQueryHandler, state: FSMConte
     await state.set_state(CryptoPayments.amount_to_withdraw)
     await withdraw_choice(call)
 
+
+@router.callback_query(lambda call: 'percent' in call.data)
+async def callback_currency_withdraw(call: CallbackQueryHandler, state: FSMContext):
+    await buttons_withdraw_handler(call)
+    
 
 @router.message(CryptoPayments.amount_to_withdraw)
 async def withdraw_amount(message: Message, state: FSMContext):

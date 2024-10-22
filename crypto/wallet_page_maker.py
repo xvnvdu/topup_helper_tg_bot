@@ -46,17 +46,17 @@ async def get_balance_by_chain(call: CallbackQueryHandler, chain, chain_currency
     if chain == 'Optimism' or chain == 'Arbitrum':
         page_text = (
             f'<strong>▫️<a href="{link}">{chain}</a></strong>\n'
-            f'  ├ {native_currency}: <code>{native_balance}</code> <i>({native_in_usd}$)</i>\n'
-            f'  ├ {chain_currency_name}: <code>{main_chain_currency_balance}</code> <i>({main_in_usdt}$)</i>\n'
-            f'  ├ {stable_name1}: <code>{first_stablecoin_balance}</code>\n'
-            f'  └ {stable_name2}: <code>{second_stablecoin_balance}</code>\n\n'
+            f'  ├ {native_currency}: <code>{f"{native_balance:.9f}".rstrip("0").rstrip(".")}</code> <i>({native_in_usd}$)</i>\n'
+            f'  ├ {chain_currency_name}: <code>{f"{main_chain_currency_balance:.5f}".rstrip("0").rstrip(".")}</code> <i>({main_in_usdt}$)</i>\n'
+            f'  ├ {stable_name1}: <code>{f"{first_stablecoin_balance:.4f}".rstrip("0").rstrip(".")}</code>\n'
+            f'  └ {stable_name2}: <code>{f"{second_stablecoin_balance:.4f}".rstrip("0").rstrip(".")}</code>\n\n'
         )
     else:
         page_text = (
             f'<strong>▫️<a href="{link}">{chain}</a></strong>\n'
-            f'  ├ {native_currency}: <code>{native_balance}</code> <i>({native_in_usd}$)</i>\n'
-            f'  ├ {stable_name1}: <code>{first_stablecoin_balance}</code>\n'
-            f'  └ {stable_name2}: <code>{second_stablecoin_balance}</code>\n\n'
+            f'  ├ {native_currency}: <code>{f"{native_balance:.9f}".rstrip("0").rstrip(".")}</code> <i>({native_in_usd}$)</i>\n'
+            f'  ├ {stable_name1}: <code>{f"{first_stablecoin_balance:.4f}".rstrip("0").rstrip(".")}</code>\n'
+            f'  └ {stable_name2}: <code>{f"{second_stablecoin_balance:.4f}".rstrip("0").rstrip(".")}</code>\n\n'
         )
     if not flag:
         return page_text
