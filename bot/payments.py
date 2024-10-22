@@ -227,5 +227,3 @@ async def stars_custom(message: Message, bot: Bot, state: FSMContext):
     custom_stars_keyboard = InlineKeyboardMarkup(inline_keyboard=custom_stars_payment)
     await message.answer('<strong>⭐️ Для пополнения баланса нажмите кнопку ниже:</strong>',
                                  parse_mode='HTML', reply_markup=custom_stars_keyboard)
-
-

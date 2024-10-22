@@ -148,14 +148,14 @@ async def send_to_user(call: CallbackQueryHandler, bot: Bot, state: FSMContext):
         else:
             sender_payments[today][time_now] = {'RUB': amount,
                                                 'USD': 0,
-                                                 'transaction_num': trx_num,
-                                                 'type': sender_info, 'trx_id': trx_sender_id}
+                                                'transaction_num': trx_num,
+                                                'type': sender_info, 'trx_id': trx_sender_id}
             await save_payments()
         if today not in reciever_payments:
             reciever_payments[today] = {time_now: {'RUB': amount,
                                                    'USD': 0,
-                                                  'transaction_num': trx_num,
-                                                  'type': reciever_info, 'trx_id': trx_reciever_id}}
+                                                   'transaction_num': trx_num,
+                                                   'type': reciever_info, 'trx_id': trx_reciever_id}}
             await save_payments()
         else:
             reciever_payments[today][time_now] = {'RUB': amount,

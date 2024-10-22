@@ -356,4 +356,3 @@ async def confirm_phone(message: Message):
                              parse_mode='HTML', reply_markup=markup)
     else:
         return
-

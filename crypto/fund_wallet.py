@@ -92,17 +92,17 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
 
         if today not in user_payments:
             user_payments[today] = {time_now: {'RUB': amount_rub,
-                                            'USD': 0,
-                                            'transaction_num': trx_num,
-                                            'type': trx_info,
-                                            'trx_id': trx_id}}
+                                               'USD': 0,
+                                               'transaction_num': trx_num,
+                                               'type': trx_info,
+                                               'trx_id': trx_id}}
             await save_payments()
         else:
             user_payments[today][time_now] = {'RUB': amount_rub,
-                                            'USD': 0,
-                                            'transaction_num': trx_num,
-                                            'type': trx_info,
-                                            'trx_id': trx_id}
+                                              'USD': 0,
+                                              'transaction_num': trx_num,
+                                              'type': trx_info,
+                                              'trx_id': trx_id}
             await save_payments()
 
         await call.message.edit_text(f'🎉 <strong>Транзакция инициирована!</strong>\n'
@@ -152,7 +152,7 @@ async def send_crypto(call: CallbackQuery, chain) -> Any:
             'to': recipient_address,
             'value': web3.to_wei(amount_crypto, 'ether'),
             'maxFeePerGas': gas_price_wei,
-	        'maxPriorityFeePerGas': max_priority_fee,
+            'maxPriorityFeePerGas': max_priority_fee,
             'chainId': web3.eth.chain_id
         }
 
