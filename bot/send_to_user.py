@@ -3,7 +3,7 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.handlers import CallbackQueryHandler
 
-
+from logger import logger
 from .main_bot import SendToFriend
 from .bot_buttons import (try_again_amount_keyboard, step_back_keyboard, try_again_id_keyboard, 
                           skip_message_keyboard, confirm_sending_keyboard, try_again_message_keyboard)
@@ -20,6 +20,8 @@ async def amount_input(message: Message, state: FSMContext):
     user_amount = message.text.replace(',', '.')
     user_data = users_data_dict[user_id]
     balance = user_data['Balance']
+    
+    logger.info(f'Пользователь {user_id} вводит сумму для перевода баланса.')
     
     try:
         amount = float(user_amount)
@@ -50,6 +52,8 @@ async def amount_input(message: Message, state: FSMContext):
 async def id_input(message: Message, state: FSMContext):
     user_id = message.from_user.id
     user_input = message.text
+
+    logger.info(f'Пользователь {user_id} вводит ID для перевода баланса.')
 
     try:
         send_to = int(user_input)
@@ -86,6 +90,8 @@ async def message_input(message: Message, state: FSMContext):
     user_id = message.from_user.id
     user_input = message.text
 
+    logger.info(f'Пользователь {user_id} вводит сообщение при перевода баланса.')
+
     if user_input is not None:
         try:
             send_message = str(user_input)
@@ -112,8 +118,10 @@ async def message_input(message: Message, state: FSMContext):
 async def send_to_user(call: CallbackQueryHandler, bot: Bot, state: FSMContext):
     user_id = call.from_user.id
     user_data = users_data_dict[user_id]
+    
     reciever_id = pending_sending_id[user_id]
     reciever_data = users_data_dict[reciever_id]
+    
     user_data['Balance'] = int(user_data['Balance'])
     reciever_data['Balance'] = int(reciever_data['Balance'])
 
@@ -176,6 +184,9 @@ async def send_to_user(call: CallbackQueryHandler, bot: Bot, state: FSMContext):
                                    text=f'<strong>🎉 Пополнение баланса от другого пользователя!</strong>\n\n'
                                         f'<i>🥷 Перевод от пользователя под ID: <code>{user_id}</code>\n💰 Сумма перевода: '
                                         f'<code>{amount}₽</code></i>', parse_mode='HTML')
+
+    logger.info(f'Пользователь {user_id} успешно совершил перевод для {reciever_id}.')
+    logger.info(f'Пользователь {reciever_id} получил перевод от {user_id}.')
 
     del (pending_sending_amount[user_id], pending_sending_message[user_id], pending_sending_id[user_id],
          pending_sending_info[user_id], pending_recieving_info[reciever_id])

@@ -1,5 +1,7 @@
 import asyncio
+from decimal import Decimal, ROUND_DOWN
 
+from logger import logger
 from bot.main_bot import users_data_dict
 from aiogram.handlers import CallbackQueryHandler
 
@@ -41,27 +43,41 @@ async def get_balance_by_chain(call: CallbackQueryHandler, chain, chain_currency
         return_matic_price() if native_currency == 'POL' else return_eth_price()
     )
 
-    native_in_usd = round(native_balance * native_price, 2)
+    try:
+        native_in_usd = round(native_balance * native_price, 2)
+        native_balance = Decimal(native_balance).quantize(Decimal("0.000000001"), rounding=ROUND_DOWN)
+        
+        if main_chain_currency_balance is not None:
+            main_chain_currency_balance = Decimal(main_chain_currency_balance).quantize(Decimal("0.0001"), rounding=ROUND_DOWN)
+            
+        first_stablecoin_balance = Decimal(first_stablecoin_balance).quantize(Decimal("0.001"), rounding=ROUND_DOWN)
+        second_stablecoin_balance = Decimal(second_stablecoin_balance).quantize(Decimal("0.001"), rounding=ROUND_DOWN)
+        
+    except Exception as e:
+        logger.error(f'Произошла ошибка: {e}')
 
     if chain == 'Optimism' or chain == 'Arbitrum':
         page_text = (
             f'<strong>▫️<a href="{link}">{chain}</a></strong>\n'
-            f'  ├ {native_currency}: <code>{f"{native_balance:.9f}".rstrip("0").rstrip(".")}</code> <i>({native_in_usd}$)</i>\n'
-            f'  ├ {chain_currency_name}: <code>{f"{main_chain_currency_balance:.5f}".rstrip("0").rstrip(".")}</code> <i>({main_in_usdt}$)</i>\n'
-            f'  ├ {stable_name1}: <code>{f"{first_stablecoin_balance:.4f}".rstrip("0").rstrip(".")}</code>\n'
-            f'  └ {stable_name2}: <code>{f"{second_stablecoin_balance:.4f}".rstrip("0").rstrip(".")}</code>\n\n'
+            f'  ├ {native_currency}: <code>{f"{native_balance}".rstrip("0").rstrip(".")}</code> '
+                                    f'<i>({f"{native_in_usd}".rstrip("0").rstrip(".")}$)</i>\n'
+            f'  ├ {chain_currency_name}: <code>{f"{main_chain_currency_balance}".rstrip("0").rstrip(".")}</code> '
+                                    f'<i>({f"{main_in_usdt}".rstrip("0").rstrip(".")}$)</i>\n'
+            f'  ├ {stable_name1}: <code>{f"{first_stablecoin_balance}".rstrip("0").rstrip(".")}</code>\n'
+            f'  └ {stable_name2}: <code>{f"{second_stablecoin_balance}".rstrip("0").rstrip(".")}</code>\n\n'
         )
     else:
         page_text = (
             f'<strong>▫️<a href="{link}">{chain}</a></strong>\n'
-            f'  ├ {native_currency}: <code>{f"{native_balance:.9f}".rstrip("0").rstrip(".")}</code> <i>({native_in_usd}$)</i>\n'
-            f'  ├ {stable_name1}: <code>{f"{first_stablecoin_balance:.4f}".rstrip("0").rstrip(".")}</code>\n'
-            f'  └ {stable_name2}: <code>{f"{second_stablecoin_balance:.4f}".rstrip("0").rstrip(".")}</code>\n\n'
+            f'  ├ {native_currency}: <code>{f"{native_balance}".rstrip("0").rstrip(".")}</code> '
+                                    f'<i>({f"{native_in_usd}".rstrip("0").rstrip(".")}$)</i>\n'
+            f'  ├ {stable_name1}: <code>{f"{first_stablecoin_balance}".rstrip("0").rstrip(".")}</code>\n'
+            f'  └ {stable_name2}: <code>{f"{second_stablecoin_balance}".rstrip("0").rstrip(".")}</code>\n\n'
         )
     if not flag:
         return page_text
     else:
-        total_balance = native_in_usd + first_stablecoin_balance + second_stablecoin_balance
+        total_balance = native_in_usd + float(first_stablecoin_balance) + float(second_stablecoin_balance)
         if main_in_usdt is not None:
             total_balance += main_in_usdt
         return total_balance

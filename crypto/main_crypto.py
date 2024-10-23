@@ -11,6 +11,7 @@ pending_rub_amount = {}
 pending_fund_trx_id = {}
 pending_crypto_fund_amount = {}
 
+
 ok_to_withdraw = {}
 pending_user_balance = {}
 pending_withdraw_info = {}

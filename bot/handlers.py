@@ -1,4 +1,5 @@
 import time
+from logger import logger
 from datetime import datetime
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -27,7 +28,9 @@ router = Router()
 async def command_menu(message: Message):
     user_id = message.from_user.id
     user_data = users_data_dict[user_id]
-    print(f'Пользователь {user_id} воспользовался командой меню')
+    
+    logger.info(f'Пользователь {user_id} воспользовался командой /menu.')
+    
     if user_data['Is_verified']:
         await message.answer( '<strong>Выберите нужное действие:</strong>',
                          parse_mode='HTML', reply_markup=menu_keyboard)
@@ -39,10 +42,14 @@ async def command_menu(message: Message):
 async def command_account(message: Message):
     user_id = message.from_user.id
     user_data = users_data_dict[user_id]
+
+    logger.info(f'Пользователь {user_id} воспользовался командой /account.')
+    
     phone = int(user_data['Phone']) // 10**4
     balance = user_data['Balance']
     registration_date = user_data['Registration']
     volume = user_data['Funding_volume']
+    
     days_count = (datetime.now() - datetime.strptime(registration_date, '%d.%m.%Y')).days
     if days_count % 10 == 1 and days_count % 100 != 11:
         days = 'день'
@@ -50,7 +57,7 @@ async def command_account(message: Message):
         days = 'дня'
     else:
         days = 'дней'
-    print(f'Пользователь {user_id} воспользовался командой аккаунт')
+        
     if user_data['Is_verified']:
         await message.answer(f'<strong>Мой аккаунт</strong>\n\n'
                              f'⚙️ <strong>ID:</strong> <code>{message.from_user.id}</code>\n'
@@ -67,7 +74,9 @@ async def command_account(message: Message):
 async def command_balance(message: Message):
     user_id = message.from_user.id
     user_data = users_data_dict.get(user_id)
-    print(f'Пользователь {user_id} воспользовался командой баланс')
+    
+    logger.info(f'Пользователь {user_id} воспользовался командой /balance.')
+    
     if user_data['Is_verified']:
         await message.answer('<strong>Выберите удобный способ пополнения баланса:</strong>', 
                              parse_mode='HTML', reply_markup=payment_keyboard)
@@ -79,9 +88,12 @@ async def command_balance(message: Message):
 async def command_crypto(message: Message, bot: Bot):
     user_id = message.from_user.id
     user_data = users_data_dict[user_id]
-    print(f'Пользователь {user_id} воспользовался командой вывести')
+    
+    logger.info(f'Пользователь {user_id} воспользовался командой /crypto.')
+    
     call = CallbackQuery(id='fake_id', from_user=message.from_user,
                          message=message, chat_instance='')
+    
     if user_data['Is_verified']:
         start = time.perf_counter()
         connection_await = await message.answer('🌐 <strong>Подключение к блокчейну.</strong>\n'
@@ -91,7 +103,7 @@ async def command_crypto(message: Message, bot: Bot):
         await message.answer(text, parse_mode='HTML', reply_markup=crypto_keyboard,
                              disable_web_page_preview=True)
         end = time.perf_counter()
-        print(f'{end - start:.2f}')
+        logger.info(f'Получение данных блокчейна для пользователя {user_id} заняло {end - start:.2f} сек.')
     else:
         await confirm_phone(message)
 
@@ -99,28 +111,38 @@ async def command_crypto(message: Message, bot: Bot):
 @router.message(Command('start'))
 async def start(message: Message):
     user_id = message.from_user.id
-    user = {'ID': user_id, 'Name': message.from_user.first_name,
-            'Surname': message.from_user.last_name,
-            'Username': message.from_user.username, 'Phone': None,
-            'Is_verified': False, 'Registration': None, 'Balance': 0,
-            'Funding_volume': 0}
-    user_payments = {'ID': user_id,
-                     'Transactions': {}
-    }
-    print(f'Пользователь {user_id} воспользовался командой старт')
+    
+    logger.info(f'Пользователь {user_id} воспользовался командой /start.')
+    
     if user_id not in users_data_dict:
+        user = {'ID': user_id, 'Name': message.from_user.first_name,
+                'Surname': message.from_user.last_name,
+                'Username': message.from_user.username, 'Phone': None,
+                'Is_verified': False, 'Registration': None, 'Balance': 0,
+                'Funding_volume': 0}
+        
+        user_payments = {'ID': user_id,
+                        'Transactions': {}}
+
         total_values['Total_users'] += 1
-        await message.answer('Привет! 🤖\nКак ты мог заметить, с некоторых сайтов '
-                             'пропало несколько, либо вообще все способы пополнения баланса, '
-                             'кроме криптовалют.\nНе волнуйся, я создан, '
-                             'чтобы помочь тебе с пополнением, в том случае, '
-                             'если у тебя нет биржи или кошелька, с которых ты мог '
-                             'бы пополнять баланс самостоятельно! 🤩')
+        await message.answer('<strong>Привет! 🤖<strong>\n'
+                             'Я помогу тебе в переводах криптовалюты, '
+                             'если у тебя нет личного кошелька или биржи.\n\n'
+                             '<strong>С моей помощью ты сможешь:</strong>\n'
+                             '<i>• Пополнить баланс криптовалютой на сайте\n'
+                             '• Сделать перевод другому пользователю\n'
+                             '• Оплатить криптой товары/услуги</i>\n'
+                             'И не только!\n\n'
+                             'Разобраться с криптой сможет даже твоя бабушка, '
+                             'в этом нет абсолютно ничего сложного. Чего ты ждешь? '
+                             'Давай познакомимся поближе.')
         users_data.append(user)
         users_payments.append(user_payments)
+        
         await save_data()
         await save_payments()
         await save_total()
+        
         users_payments_dict[user_id] = user_payments
         users_data_dict[user_id] = user
 
@@ -142,17 +164,22 @@ async def successful_payment(message: Message):
     user_id = message.from_user.id
     user_data = users_data_dict[user_id]
     user_payment = users_payments_dict[user_id]['Transactions']
+    
     await message.answer('<strong>Оплата успешная 🎉</strong>\n<i>Примечание: '
                          'не используйте одну и ту же ссылку на пополнение дважды, '
                          'ваша оплата не будет засчитана!</i>', parse_mode='HTML')
+    
     if message.from_user.id in pending_payments:
         amount = pending_payments[user_id]
         trx_type = pending_payments_info[user_id]
+        
         trx_id = await id_generator()
+        
         total_values['Total_topups_count'] += 1
         total_values['Total_topups_volume'] += amount
         total_values['Total_transactions_count'] += 1
         trx_num = total_values['Total_transactions_count']
+        
         user_data['Balance'] += amount
         user_data['Funding_volume'] += amount
         
@@ -172,6 +199,8 @@ async def successful_payment(message: Message):
                                              'transaction_num': trx_num, 
                                              'type': trx_type, 'trx_id': trx_id}
             await save_payments()
+        
+        logger.info(f'Пользователь {user_id} успешно пополнил баланс на {amount}₽.')
         del pending_payments_info[user_id]
         del pending_payments[user_id]
 
@@ -182,18 +211,24 @@ async def check_contact(message: Message):
 
     if message.contact is not None and message.contact.user_id == user_id:
         user_data = users_data_dict[user_id]
+        
         user_data['Phone'] = message.contact.phone_number
         user_data['Is_verified'] = True
         user_data['Registration'] = time.strftime('%d.%m.%Y')
+        
         (user_data['Wallet_address'],
          user_data['Private_key']) = await create_new_wallet()
+        
         total_values['Total_verified_users'] += 1
+        
         await save_total()
         await save_data()
+        
         remove_button = types.ReplyKeyboardRemove()
         await message.answer('<b>Номер телефона успешно подтвержден!</b> 🎉\n'
                              'Вы можете пользоваться ботом.', parse_mode='HTML',
                              reply_markup=remove_button)
+        logger.info(f'Пользователь {user_id} подтвердил номер телефона.')
         await command_menu(message)
     else:
         await confirm_phone(message)
@@ -202,6 +237,7 @@ async def check_contact(message: Message):
 @router.callback_query(lambda call: call.data.endswith('_fund'))
 async def callback_fund_crypto(call: CallbackQueryHandler, state: FSMContext):
     await state.set_state(CryptoPayments.fund_wallet)
+    
     user_id = call.from_user.id
     user_data = users_data_dict[user_id]
     balance_rub = user_data["Balance"]
@@ -215,6 +251,8 @@ async def callback_fund_crypto(call: CallbackQueryHandler, state: FSMContext):
                                  f'сети используется нативная монета этой сети, поэтому пополнение '
                                  f'кошелька в боте происходит только в нативных монетах. Для пополнения '
                                  f'введите сумму в рублях:</i>', parse_mode='HTML', reply_markup=back_to_chain_keyboard(chain))
+    
+    logger.info(f'Пользователь {user_id} выбирает сумму для пополнения криптокошелька.')
 
 
 @router.message(CryptoPayments.fund_wallet)
@@ -231,6 +269,8 @@ async def callback_withdraw_crypto(call: CallbackQueryHandler):
     chain = str(call.data).split('_')[0]
     await call.message.edit_text('💱 <strong>Выберите монету для вывода:</strong>',
                                  parse_mode='HTML', reply_markup=withdraw_crypto(chain))
+    
+    logger.info(f'Пользователь {user_id} выбирает монету для вывода из криптокошелька.')
 
 
 @router.callback_query(lambda call: call.data.startswith('withdraw_'))
@@ -257,14 +297,22 @@ async def withdraw_handler(message: Message, state: FSMContext):
 
 @router.callback_query(lambda call: call.data.endswith('_swap'))
 async def callback_swap_crypto(call: CallbackQueryHandler):
+    user_id = call.from_user.id
+    
     chain = str(call.data).split('_')[0]
     await call.message.edit_text('⚠️ Этот раздел находится в разработке...', reply_markup=back_to_chain_keyboard(chain))
+
+    logger.info(f'Пользователь {user_id} вошел в свап.')
 
 
 @router.callback_query(lambda call: call.data.endswith('_bridge'))
 async def callback_bridge_crypto(call: CallbackQueryHandler):
+    user_id = call.from_user.id
+    
     chain = str(call.data).split('_')[0]
     await call.message.edit_text('⚠️ Этот раздел находится в разработке...', reply_markup=back_to_chain_keyboard(chain))
+    
+    logger.info(f'Пользователь {user_id} вошел в бридж.')
 
 
 

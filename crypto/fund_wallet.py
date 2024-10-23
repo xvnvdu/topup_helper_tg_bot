@@ -4,6 +4,7 @@ from typing import Any
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
+from logger import logger
 from config import bot_wallet_pk as pk, bot_wallet_address as adr
 from bot.main_bot import id_generator, save_data, save_payments, save_total, users_data_dict, total_values, users_payments_dict
 from bot.bot_buttons import successful_wallet_fund, try_again_crypto_amount_keyboard, confirm_fund_wallet, back_to_chain_keyboard
@@ -33,10 +34,14 @@ async def fund(message: Message, state: FSMContext):
         amount = float(user_amount)
         amount = int(amount)
         if amount <= 0:
+            logger.warning(f'Пользователь {user_id} ввел некорректную сумму при пополнении криптокошелька: {amount}.')
+            
             await message.answer('<strong>⚠️ Сумма введена некорректно.</strong>\n<i>Нельзя пополнить кошелек на '
                                  'сумму отрицательную или равную нулю.</i>', parse_mode='HTML',
                                  reply_markup=try_again_crypto_amount_keyboard(chain))
         elif int(balance) < amount:
+            logger.warning(f'У пользователя {user_id} не хватает средств для пополнения криптокошелька: {balance} - {amount}.')
+            
             await message.answer('<strong>⚠️ У вас не хватает средств для пополнения.</strong>\n<i>Уменьшите сумму '
                                  'или пополните баланс.</i>', parse_mode='HTML', reply_markup=try_again_crypto_amount_keyboard(chain))
         else:
@@ -47,11 +52,13 @@ async def fund(message: Message, state: FSMContext):
             pending_fund_trx_id[user_id] = trx_id
             
             ok_to_fund[user_id] = True
-                
+            
+            logger.info(f'Пользователь {user_id} подтверждает пополнение криптокошелька на {user_recieve} {native}.')
             await message.answer(f'<strong>🌐 Пополняемая сеть: <code>{chain}</code>\n💳 Сумма пополнения: <code>{amount}₽</code>\n\n'
                                  f'📊 Курс: <code>1 {native} = {currency_price}₽</code>\nИтого к пополнению: <code>{user_recieve} {native}</code>\n\n'
                                  f'Подтверждаете?</strong>', parse_mode='HTML', reply_markup=confirm_fund_wallet(chain, trx_id))
     except ValueError:
+        logger.warning(f'Пользователь {user_id} ввел некорректную сумму при пополнении криптокошелька.')
         await message.answer('<strong>⚠️ Сумма введена некорректно, попробуйте еще раз.</strong>', 
                              parse_mode='HTML', reply_markup=try_again_crypto_amount_keyboard(chain))
     await state.clear()
@@ -75,6 +82,8 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
     except web3.exceptions.Web3RPCError:
         connected = True
         trx_hash = False
+        
+        logger.critical(f'На кошельке-хранилище недостаточно средств для пополнения. Сеть - {chain} | Сумма - {amount_crypto} {native}.')
         await call.message.edit_text('⚠️ <strong>Ошибка пополнения. Недостаточно средств.</strong>\n'
                                         '<i>На кошельке, с которого происходит вывод, недостаточно средств в '
                                         'выбранной вами сети. Попробуйте уменьшить сумму пополнения, либо '
@@ -109,12 +118,14 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
                                               'trx_id': trx_id}
             await save_payments()
 
+        logger.info(f'Пользователь {user_id} успешно пополнил криптокошелек. Сеть - {chain} | Сумма - {amount_crypto} {native}')
         await call.message.edit_text(f'🎉 <strong>Транзакция инициирована!</strong>\n'
                                         f'<i>Ожидайте поступления средств.</i>\n\n'
                                         f'<strong>Хэш: <pre>{trx_hash}</pre></strong>',
                                         parse_mode='HTML', reply_markup=successful_wallet_fund(exp_link, explorer, trx_hash), 
                                         disable_web_page_preview=True)
     if not connected:
+        logger.error(f'Ошибка при инициализации транзакции пользователем {user_id}. Сеть - {chain} | Сумма - {amount_crypto} {native}')
         await  call.message.edit_text('⛔️ <strong>Произошла ошибка при инициализации транзакции!\n'
                                         '<i>Повторите попытку позже.</i></strong>', parse_mode='HTML')
 
@@ -138,6 +149,9 @@ async def try_to_fund(call: CallbackQuery):
 
 
 async def wallet_funding_declined(call: CallbackQuery):
+     user_id = call.from_user.id
+    
+     logger.warning(f'Пользователь {user_id} воспользовался устаревшей транзакцией для пополнения.')
      await  call.message.edit_text('⛔️ <strong>Данные транзакции устарели!</strong>\n'
                                           '<i>Попробуйте инициировать новую.</i>', parse_mode='HTML')
 
@@ -151,6 +165,7 @@ async def send_crypto(call: CallbackQuery, chain) -> Any:
 
     if not web3.is_connected():
         today, time_now = await get_time()
+        logger.error(f'Ошибка подключения к сети {chain}. Пользователь: {user_id}. RPC: {rpc}')
         raise Exception(f'{today} | {time_now} Ошибка подключения к сети {chain}. Пользователь: {user_id}')
 
     else:
