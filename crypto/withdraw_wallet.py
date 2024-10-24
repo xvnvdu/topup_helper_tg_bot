@@ -347,28 +347,40 @@ async def withdraw_crypto(call: CallbackQuery, chain):
 		return hash_hex
 
 
-async def buttons_withdraw_handler(call: CallbackQuery):
+async def buttons_withdraw_handler(call: CallbackQuery, state: FSMContext):
 	user_id = call.from_user.id
 
-	amount = int(str(call.data).split('_')[0])
+	percent = int(str(call.data).split('_')[0])
 	balance = pending_user_balance[user_id]
 	chain = pending_chain_withdraw[user_id]
 	currency = pending_currency_to_withdraw[user_id]
 	usd_balance = float(pending_user_balance_in_usd[user_id])
 	coin_price = Currencies.currencies[chain][currency].return_price
  
-	ok_to_withdraw[user_id] = False
+	logger.info(f'usd_balance: {usd_balance}.')
  
-	user_amount = float(balance) * amount / 100
+	ok_to_withdraw[user_id] = False
+
+	user_amount = float(balance) * percent / 100
+	amount_in_usd = usd_balance * percent / 100
+
+	if amount_in_usd == 0:
+		logger.warning(f'Пользователь {user_id} попытался вывести менее 0.01$: {amount_in_usd}.')
+		await call.message.edit_text('<strong>⚠️ Слишком маленькое значение.</strong>\n'
+				'<i>Сумма для вывода должна быть эквивалентна не менее 0.01$</i>', 
+				parse_mode='HTML', reply_markup=try_again_withdraw_amount(chain, currency))
+		await state.clear()
+		return
+
 	if currency == Networks.networks[chain].coin_symbol:
-		if amount == 100:
+		if percent == 100:
 			withdraw_in_usd = usd_balance * (1 - 1 / (usd_balance * 100))
 			user_amount = balance / usd_balance * withdraw_in_usd
 
-	logger.info(f'Пользователь {user_id} выбрал {amount}% для вывода. Сумма - {user_amount} {currency}.')
+	logger.info(f'Пользователь {user_id} выбрал {percent}% для вывода. Сумма - {user_amount} {currency}.')
 	pending_crypto_withdraw_amount[user_id] = user_amount
 	withdraw_amount_to_show[user_id] = user_amount
- 
+
 	text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{user_amount} {currency}</code></i>'
 	if coin_price is not None:
 		coin_price = await coin_price()
@@ -376,7 +388,7 @@ async def buttons_withdraw_handler(call: CallbackQuery):
 		withdraw_amount_usd_value[user_id] = usd_value
 		text += f' <i>({usd_value}$)</i>'
 
-	await call.message.edit_text(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
+		await call.message.edit_text(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
 
 
 async def try_to_withdraw(call: CallbackQuery):
