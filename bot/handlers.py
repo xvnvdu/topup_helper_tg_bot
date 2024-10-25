@@ -2,9 +2,8 @@ import time
 from logger import logger
 from datetime import datetime
 from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.handlers import CallbackQueryHandler
 from aiogram import F, Router, types, Bot
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, PreCheckoutQuery, CallbackQuery
 
 from crypto.fund_wallet import fund
@@ -14,16 +13,18 @@ from crypto.main_crypto import create_new_wallet, CryptoPayments, pending_chain_
 
 from .callbacks import main_callbacks
 from .payments import rub_custom, stars_custom
+from .support.admin_side import answer_message, send_answer
 from .send_to_user import amount_input, id_input, message_input
-from .main_bot import (users_data, users_payments, users_data_dict, users_payments_dict,
-                  save_data, save_payments, total_values, save_total, id_generator, CustomPaymentState, 
-                  SendToFriend, pending_payments, pending_payments_info, get_time)
+from .support.user_side import message_to_support, continue_application, send_application
 from .bot_buttons import (menu_keyboard, account_keyboard, payment_keyboard, crypto_keyboard, withdraw_crypto, back_to_chain_keyboard)
+from .main_bot import (users_data, users_payments, users_data_dict, users_payments_dict, Support, save_data, save_payments, save_total,
+                       total_values, get_time, id_generator, CustomPaymentState, SendToFriend, pending_payments, pending_payments_info)
 
 
 router = Router()
 
 
+# ХЭНДЛЕР ДЛЯ ВЫЗОВА МЕНЮ
 @router.message(Command('menu'))
 async def command_menu(message: Message):
     user_id = message.from_user.id
@@ -38,6 +39,7 @@ async def command_menu(message: Message):
         await confirm_phone(message)
 
 
+# ХЭНДЛЕР ДЛЯ ВЫЗОВА АККАУНТА
 @router.message(Command('account'))
 async def command_account(message: Message):
     user_id = message.from_user.id
@@ -70,6 +72,7 @@ async def command_account(message: Message):
         await confirm_phone(message)
 
 
+# ХЭНДЛЕР ДЛЯ ВЫЗОВА ПОПОЛНЕНИЯ БАЛАНСА
 @router.message(Command('balance'))
 async def command_balance(message: Message):
     user_id = message.from_user.id
@@ -84,6 +87,7 @@ async def command_balance(message: Message):
         await confirm_phone(message)
 
 
+# ХЭНДЛЕР ДЛЯ ВЫЗОВА КРИПТОКОШЕЛЬКА
 @router.message(Command('crypto'))
 async def command_crypto(message: Message, bot: Bot):
     user_id = message.from_user.id
@@ -108,6 +112,7 @@ async def command_crypto(message: Message, bot: Bot):
         await confirm_phone(message)
 
 
+# ХЭНДЛЕР КОМАНДЫ СТАРТ
 @router.message(Command('start'))
 async def start(message: Message):
     user_id = message.from_user.id
@@ -154,11 +159,13 @@ async def start(message: Message):
         await command_menu(message)
 
 
+# ХЭНДЛЕР ОПЛАТЫ
 @router.pre_checkout_query()
 async def pre_checkout_query(pre_checkout_query: PreCheckoutQuery, bot: Bot):
     await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 
+# ХЭНДЛЕР УСПЕШНОЙ ОПЛАТЫ
 @router.message(F.successful_payment)
 async def successful_payment(message: Message):
     user_id = message.from_user.id
@@ -205,6 +212,7 @@ async def successful_payment(message: Message):
         del pending_payments[user_id]
 
 
+# ХЭНДЛЕР ОТПРАВКИ КОНТАКТА
 @router.message(F.contact)
 async def check_contact(message: Message):
     user_id = message.from_user.id
@@ -234,8 +242,35 @@ async def check_contact(message: Message):
         await confirm_phone(message)
 
 
+# ХЭНДЛЕРЫ ДЛЯ РАЗДЕЛА ПОДДЕРЖКИ
+@router.message(Support.message_to_support)
+async def message_to_support_handler(message: Message, bot: Bot, state: FSMContext):
+    await message_to_support(message, bot, state)
+
+@router.callback_query(lambda call: 'answer_message' in call.data)
+async def answer_message_handler(call: CallbackQuery, state: FSMContext):
+    await answer_message(call, state)
+
+@router.message(Support.answer_message)
+async def send_answer_handler(message: Message, bot: Bot, state: FSMContext):
+    await send_answer(message, bot, state)
+
+@router.callback_query(lambda call: 'continue_application' in call.data)
+async def continue_application_handler(call: CallbackQuery, state: FSMContext):
+    await continue_application(call, state)
+    
+@router.message(Support.continue_application)
+async def send_application_handler(message: Message, bot: Bot, state: FSMContext):
+    await send_application(message, bot, state)
+
+# @router.message(content_types=['photo'])
+# async def support_photo_handler(message: Message):
+#     pass
+
+
+# ХЭНДЛЕРЫ ДЛЯ КРИПТОКОШЕЛЬКА
 @router.callback_query(lambda call: call.data.endswith('_fund'))
-async def callback_fund_crypto(call: CallbackQueryHandler, state: FSMContext):
+async def callback_fund_crypto(call: CallbackQuery, state: FSMContext):
     await state.set_state(CryptoPayments.fund_wallet)
     
     user_id = call.from_user.id
@@ -254,14 +289,12 @@ async def callback_fund_crypto(call: CallbackQueryHandler, state: FSMContext):
     
     logger.info(f'Пользователь {user_id} выбирает сумму для пополнения криптокошелька.')
 
-
 @router.message(CryptoPayments.fund_wallet)
 async def fund_handler(message: Message, state: FSMContext):
     await fund(message, state)
     
-
 @router.callback_query(lambda call: call.data.endswith('_withdraw'))
-async def callback_withdraw_crypto(call: CallbackQueryHandler):
+async def callback_withdraw_crypto(call: CallbackQuery):
     user_id = call.from_user.id
     
     ok_to_withdraw[user_id] = False
@@ -272,31 +305,26 @@ async def callback_withdraw_crypto(call: CallbackQueryHandler):
     
     logger.info(f'Пользователь {user_id} выбирает монету для вывода из криптокошелька.')
 
-
 @router.callback_query(lambda call: call.data.startswith('withdraw_'))
-async def callback_currency_withdraw(call: CallbackQueryHandler, state: FSMContext):
+async def callback_currency_withdraw(call: CallbackQuery, state: FSMContext):
     await state.set_state(CryptoPayments.amount_to_withdraw)
     await withdraw_choice(call)
 
-
 @router.callback_query(lambda call: 'percent' in call.data)
-async def callback_currency_withdraw(call: CallbackQueryHandler, state: FSMContext):
-    await buttons_withdraw_handler(call)
+async def callback_currency_withdraw(call: CallbackQuery, state: FSMContext):
+    await buttons_withdraw_handler(call, state)
     await state.set_state(CryptoPayments.address_withdraw_to)
     
-
 @router.message(CryptoPayments.amount_to_withdraw)
 async def withdraw_amount(message: Message, state: FSMContext):
     await amount_to_withdraw(message, state)
-
 
 @router.message(CryptoPayments.address_withdraw_to)
 async def withdraw_handler(message: Message, state: FSMContext):
     await address_input(message, state)
 
-
 @router.callback_query(lambda call: call.data.endswith('_swap'))
-async def callback_swap_crypto(call: CallbackQueryHandler):
+async def callback_swap_crypto(call: CallbackQuery):
     user_id = call.from_user.id
     
     chain = str(call.data).split('_')[0]
@@ -304,9 +332,8 @@ async def callback_swap_crypto(call: CallbackQueryHandler):
 
     logger.info(f'Пользователь {user_id} вошел в свап.')
 
-
 @router.callback_query(lambda call: call.data.endswith('_bridge'))
-async def callback_bridge_crypto(call: CallbackQueryHandler):
+async def callback_bridge_crypto(call: CallbackQuery):
     user_id = call.from_user.id
     
     chain = str(call.data).split('_')[0]
@@ -315,28 +342,27 @@ async def callback_bridge_crypto(call: CallbackQueryHandler):
     logger.info(f'Пользователь {user_id} вошел в бридж.')
 
 
-
+# ХЭНДЛЕР КОЛЛБЭКОВ
 @router.callback_query()
-async def callback_handler(call: CallbackQueryHandler, bot: Bot, state: FSMContext):
+async def callback_handler(call: CallbackQuery, bot: Bot, state: FSMContext):
     await main_callbacks(call, bot, state)
 
 
+# ХЭНДЛЕРЫ ДЛЯ ПЕРЕВОДА БАЛАНСА
 @router.message(SendToFriend.amount_input)
 async def amount_input_handler(message: Message, state: FSMContext):
     await amount_input(message, state)
 
-
 @router.message(SendToFriend.id_input)
 async def id_input_handler(message: Message, state: FSMContext):
     await id_input(message, state)
-
 
 @router.message(SendToFriend.message_input)
 async def message_input_handler(message: Message, state: FSMContext):
     await message_input(message, state)
     
 
-
+# ХЭНДЛЕР ДЛЯ ПОПОЛНЕНИЯ БАЛАНСА
 @router.message(CustomPaymentState.waiting_for_custom_rub_amount)
 async def process_custom_rub_amount(message: Message, bot: Bot, state: FSMContext):
     user_id = message.from_user.id
@@ -358,7 +384,6 @@ async def process_custom_rub_amount(message: Message, bot: Bot, state: FSMContex
         await message.answer('<strong>Выберите удобный способ пополнения баланса:</strong>',
                                      parse_mode='HTML', reply_markup=payment_keyboard)
     await state.clear()
-
 
 @router.message(CustomPaymentState.waiting_for_custom_stars_amount)
 async def process_custom_stars_amount(message: Message, bot: Bot, state: FSMContext):
@@ -383,12 +408,14 @@ async def process_custom_stars_amount(message: Message, bot: Bot, state: FSMCont
     await state.clear()
 
 
+# ХЭНДЛЕР ВВОДА РАНДОМНОГО СООБЩЕНИЯ
 @router.message()
 async def any_message(message: Message, state: FSMContext):
     await command_menu(message)
     await state.clear()
 
 
+# ХЭНДЛЕР ПОДТВЕРЖДЕНИЯ НОМЕРА ТЕЛЕФОНА
 @router.message()
 async def confirm_phone(message: Message):
     user_id = message.from_user.id

@@ -15,6 +15,7 @@ from .main_crypto import (pending_chain_fund, pending_crypto_fund_amount, pendin
                           pending_rub_amount, ok_to_fund, pending_fund_trx_id, get_time)
 
 
+# ВВОД СУММЫ ПОПОЛНЕНИЯ КРИПТОКОШЕЛЬКА
 async def fund(message: Message, state: FSMContext):
     user_id = message.from_user.id
     user_amount = message.text.replace(',', '.')
@@ -64,6 +65,7 @@ async def fund(message: Message, state: FSMContext):
     await state.clear()
 
 
+# ПОПОЛНЕНИЕ КРИПТОКОШЕЛЬКА ПОДТВЕРЖДЕНО
 async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
     user_id = call.from_user.id
     user_data = users_data_dict[user_id]
@@ -136,6 +138,7 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
         pass
 
 
+# ПРОВЕРКА НА УСТАРЕВШИЕ ТРАНЗАКЦИИ
 async def try_to_fund(call: CallbackQuery):
     user_id = call.from_user.id
     
@@ -148,6 +151,7 @@ async def try_to_fund(call: CallbackQuery):
         await wallet_funding_declined(call)
 
 
+# УСТАРЕВШАЯ ТРАНЗАКЦИЯ
 async def wallet_funding_declined(call: CallbackQuery):
      user_id = call.from_user.id
     
@@ -156,6 +160,7 @@ async def wallet_funding_declined(call: CallbackQuery):
                                           '<i>Попробуйте инициировать новую.</i>', parse_mode='HTML')
 
 
+# ПОПОЛНЕНИЕ ПОДТВЕРЖДЕНО
 async def send_crypto(call: CallbackQuery, chain) -> Any:
     user_id = call.from_user.id
     user_data = users_data_dict[user_id]

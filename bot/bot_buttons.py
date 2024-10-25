@@ -1,9 +1,10 @@
 from typing import Any
 from crypto.models import Currencies
-from aiogram.handlers import CallbackQueryHandler
+from aiogram.types import CallbackQuery
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
+# КНОПКИ РАЗДЕЛА МЕНЮ
 menu_buttons = [
     [InlineKeyboardButton(text='👨‍💻 Мой аккаунт', callback_data='account'),
      InlineKeyboardButton(text='💳 Пополнить', callback_data='topup')],
@@ -11,47 +12,117 @@ menu_buttons = [
         ]
 menu_keyboard = InlineKeyboardMarkup(inline_keyboard=menu_buttons)
 
+
+# КНОПКИ РАЗДЕЛА АККАУНТ
 account_buttons = [
     [InlineKeyboardButton(text='📝 Мои операции', callback_data='transactions'),
     InlineKeyboardButton(text='🙋‍♂️ Перевод другу', callback_data='send')],
+    [InlineKeyboardButton(text='🆘 Поддержка', callback_data='support')],
     [InlineKeyboardButton(text='← Назад', callback_data='back')]
 ]
 account_keyboard = InlineKeyboardMarkup(inline_keyboard=account_buttons)
 
-
-send_buttons = [
+back_to_account = [
     [InlineKeyboardButton(text='← Назад', callback_data='account')]
 ]
-send_keyboard = InlineKeyboardMarkup(inline_keyboard=send_buttons)
+back_to_account_keyboard = InlineKeyboardMarkup(inline_keyboard=back_to_account)
 
+
+# КНОПКИ РАЗДЕЛА ПОДДЕРЖКИ
+back_to_support_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[[InlineKeyboardButton(text='← Назад', callback_data='support')]],
+)
+
+support_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[[InlineKeyboardButton(text='📢 Написать в поддержку', callback_data='message_to_support')],
+                     [InlineKeyboardButton(text='← Назад', callback_data='account')]]
+)
+
+def answer_message_keyboard(user_id, number, today, time_now) -> Any:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='Ответить на сообщение', callback_data=f'answer_message_{user_id}_{number}_{today}_{time_now}')]],
+    )
+
+def cancel_answer_keyboard(user_id, number, today, time_now) -> Any:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='Не отвечать', callback_data=f'cancel_answer_{user_id}_{number}_{today}_{time_now}')]],
+    )
+
+def continue_application_keyboard(user_id, number, today, time_now) -> Any:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='Ответить на сообщение', callback_data=f'continue_application_{user_id}_{number}_{today}_{time_now}')]],
+    )
+
+def cancel_application_keyboard(user_id, number, today, time_now) -> Any:
+    return InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text='Не отвечать', callback_data=f'cancel_application_{user_id}_{number}_{today}_{time_now}')]],
+        )
+
+
+# КНОПКИ РАЗДЕЛА ПЕРЕВОДА БАЛАНСА
 try_again_amount_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='🙋‍♂️ Перевод другу', callback_data='send')]]
     )
+
 try_again_id_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='🥷 Ввести ID', callback_data='choose_id')]]
     )
+
 try_again_message_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='✉️ Написать сообщение', callback_data='message_input')]]
     )
+
 step_back_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[[InlineKeyboardButton(text='← Изменить сумму', callback_data='send')]]
 )
+
 confirm_sending_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[[InlineKeyboardButton(text='❌ Нет', callback_data='send'),
                       InlineKeyboardButton(text='✅ Да', callback_data='sending_confirmed')]]
 )
+
 skip_message_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[[InlineKeyboardButton(text='Пропустить →', callback_data='confirm_sending')]]
 )
 
 
+# КНОПКИ ЖУРНАЛА ТРАНЗАКЦИЙ
 zero_transactions_buttons = [
     [InlineKeyboardButton(text='🤑 Перейти к пополнению', callback_data='topup')],
     [InlineKeyboardButton(text='← Назад', callback_data='account')]
 ]
 zero_transactions_keyboard = InlineKeyboardMarkup(inline_keyboard=zero_transactions_buttons)
 
+async def log_buttons(call: CallbackQuery, page_text, current_page: int, total_pages: int):
+    trx_log_buttons = [[InlineKeyboardButton(text='← Назад', callback_data='account')]]
+    if current_page == 0 and total_pages > 1:
+        trx_log_buttons = [
+            [InlineKeyboardButton(text=' ', callback_data='None'),
+            InlineKeyboardButton(text='>', callback_data='next_page')],
+            [InlineKeyboardButton(text='← Назад', callback_data='account')]
+        ]
+    elif 0 < current_page < total_pages - 1:
+        trx_log_buttons = [
+            [InlineKeyboardButton(text='<', callback_data='prev_page'),
+             InlineKeyboardButton(text='>', callback_data='next_page')],
+            [InlineKeyboardButton(text='← Назад', callback_data='account')]
+        ]
+    elif total_pages == 1:
+        trx_log_buttons = [
+            [InlineKeyboardButton(text='← Назад', callback_data='account')]
+        ]
+    elif current_page == total_pages - 1:
+        trx_log_buttons = [
+            [InlineKeyboardButton(text='<', callback_data='prev_page'),
+            InlineKeyboardButton(text=' ', callback_data='None')],
+            [InlineKeyboardButton(text='← Назад', callback_data='account')]
+        ]
 
+    trx_log_keyboard = InlineKeyboardMarkup(inline_keyboard=trx_log_buttons)
+    await call.message.edit_text(text=page_text, parse_mode='HTML', reply_markup=trx_log_keyboard, disable_web_page_preview=True)
+
+
+# КНОПКИ РАЗДЕЛА ПОПОЛНЕНИЕ БАЛАНСА
 payment_buttons = [
     [InlineKeyboardButton(text='🟣 ЮKassa', callback_data='YK')],
     [InlineKeyboardButton(text='⭐️ Telegram Stars', callback_data='stars')],
@@ -59,7 +130,26 @@ payment_buttons = [
         ]
 payment_keyboard = InlineKeyboardMarkup(inline_keyboard=payment_buttons)
 
+stars_buttons = [
+        [InlineKeyboardButton(text='100₽ (63 ⭐️)', callback_data='100_in_stars'),
+         InlineKeyboardButton(text='200₽ (125 ⭐️)', callback_data='200_in_stars')],
+        [InlineKeyboardButton(text='400₽ (250 ⭐️)', callback_data='400_in_stars'),
+         InlineKeyboardButton(text='500₽ (313 ⭐️)', callback_data='500_in_stars')],
+        [InlineKeyboardButton(text='← Назад', callback_data='topup')]
+    ]
+stars_keyboard = InlineKeyboardMarkup(inline_keyboard=stars_buttons)
 
+yk_payment_buttons = [
+        [InlineKeyboardButton(text='100₽ 💵', callback_data='100_in_rub'),
+         InlineKeyboardButton(text='200₽ 💵', callback_data='200_in_rub')],
+        [InlineKeyboardButton(text='400₽ 💵', callback_data='400_in_rub'),
+         InlineKeyboardButton(text='500₽ 💵', callback_data='500_in_rub')],
+        [InlineKeyboardButton(text='← Назад', callback_data='topup')]
+    ]
+yk_payment_keyboard = InlineKeyboardMarkup(inline_keyboard=yk_payment_buttons)
+
+
+# КНОПКИ РАЗДЕЛА КРИПТОКОШЕЛЕК
 crypto_buttons = [
     [InlineKeyboardButton(text='🟣 Polygon', callback_data='Polygon'),
     InlineKeyboardButton(text='🔵 Base', callback_data='Base')],
@@ -68,7 +158,6 @@ crypto_buttons = [
     [InlineKeyboardButton(text='← Назад', callback_data='back')]
 ]
 crypto_keyboard = InlineKeyboardMarkup(inline_keyboard=crypto_buttons)
-
 
 def chains_keyboard(chain) -> Any:
     chains_buttons = [
@@ -98,14 +187,12 @@ def confirm_fund_wallet(chain, trx_id) -> Any:
         ]
     )
 
-
 def successful_wallet_fund(exp_link, explorer, trx_hash) -> Any:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=f'Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
         ]
     )
-
 
 def withdraw_crypto(chain) -> Any:
     withdraw_buttons_list = []
@@ -132,7 +219,6 @@ def withdraw_crypto(chain) -> Any:
     
     return InlineKeyboardMarkup(inline_keyboard=withdraw_buttons)
 
-
 def crypto_amount_to_withdraw(chain, coin) -> Any:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -143,7 +229,6 @@ def crypto_amount_to_withdraw(chain, coin) -> Any:
             [InlineKeyboardButton(text='← Назад', callback_data=f'{chain}_withdraw')]
         ]
     )
-
 
 def try_again_withdraw_amount(chain, currency) -> Any:
     return InlineKeyboardMarkup(
@@ -159,13 +244,11 @@ def change_withdraw_amount(chain, currency) -> Any:
         ]
     )
 
-
 try_again_address_input_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text='✏️ Изменить адрес', callback_data=f'change_withdraw_address')]
     ]
 )
-
 
 def confirm_withdrawal(trx_id: str):
     return InlineKeyboardMarkup(
@@ -175,59 +258,9 @@ def confirm_withdrawal(trx_id: str):
         ]
     )
 
-
 def successful_wallet_withdrawal(exp_link, explorer, trx_hash) -> Any:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=f'Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
         ]
     )
-
-
-stars_buttons = [
-        [InlineKeyboardButton(text='100₽ (63 ⭐️)', callback_data='100_in_stars'),
-         InlineKeyboardButton(text='200₽ (125 ⭐️)', callback_data='200_in_stars')],
-        [InlineKeyboardButton(text='400₽ (250 ⭐️)', callback_data='400_in_stars'),
-         InlineKeyboardButton(text='500₽ (313 ⭐️)', callback_data='500_in_stars')],
-        [InlineKeyboardButton(text='← Назад', callback_data='topup')]
-    ]
-stars_keyboard = InlineKeyboardMarkup(inline_keyboard=stars_buttons)
-
-
-yk_payment_buttons = [
-        [InlineKeyboardButton(text='100₽ 💵', callback_data='100_in_rub'),
-         InlineKeyboardButton(text='200₽ 💵', callback_data='200_in_rub')],
-        [InlineKeyboardButton(text='400₽ 💵', callback_data='400_in_rub'),
-         InlineKeyboardButton(text='500₽ 💵', callback_data='500_in_rub')],
-        [InlineKeyboardButton(text='← Назад', callback_data='topup')]
-    ]
-yk_payment_keyboard = InlineKeyboardMarkup(inline_keyboard=yk_payment_buttons)
-
-
-async def log_buttons(call: CallbackQueryHandler, page_text, current_page: int, total_pages: int):
-    trx_log_buttons = [[InlineKeyboardButton(text='← Назад', callback_data='account')]]
-    if current_page == 0 and total_pages > 1:
-        trx_log_buttons = [
-            [InlineKeyboardButton(text=' ', callback_data='None'),
-            InlineKeyboardButton(text='>', callback_data='next_page')],
-            [InlineKeyboardButton(text='← Назад', callback_data='account')]
-        ]
-    elif 0 < current_page < total_pages - 1:
-        trx_log_buttons = [
-            [InlineKeyboardButton(text='<', callback_data='prev_page'),
-             InlineKeyboardButton(text='>', callback_data='next_page')],
-            [InlineKeyboardButton(text='← Назад', callback_data='account')]
-        ]
-    elif total_pages == 1:
-        trx_log_buttons = [
-            [InlineKeyboardButton(text='← Назад', callback_data='account')]
-        ]
-    elif current_page == total_pages - 1:
-        trx_log_buttons = [
-            [InlineKeyboardButton(text='<', callback_data='prev_page'),
-            InlineKeyboardButton(text=' ', callback_data='None')],
-            [InlineKeyboardButton(text='← Назад', callback_data='account')]
-        ]
-
-    trx_log_keyboard = InlineKeyboardMarkup(inline_keyboard=trx_log_buttons)
-    await call.message.edit_text(text=page_text, parse_mode='HTML', reply_markup=trx_log_keyboard, disable_web_page_preview=True)

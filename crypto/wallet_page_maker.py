@@ -3,7 +3,7 @@ from decimal import Decimal, ROUND_DOWN
 
 from logger import logger
 from bot.main_bot import users_data_dict
-from aiogram.handlers import CallbackQueryHandler
+from aiogram.types import CallbackQuery
 
 from .models import DefaultABIs, Networks, contracts
 from .get_balance_func import get_token_balance, get_native_balance
@@ -15,7 +15,7 @@ decimals_18 = 10 ** 18
 decimals_6 = 10 ** 6
 
 
-async def get_balance_by_chain(call: CallbackQueryHandler, chain, chain_currency, chain_currency_name, stable1, stable2,
+async def get_balance_by_chain(call: CallbackQuery, chain, chain_currency, chain_currency_name, stable1, stable2,
                                stable1_decimals, stable2_decimals, link, native_currency,
                                stable_name1, stable_name2, flag: False, chain_checker: False):
 
@@ -59,7 +59,7 @@ async def get_balance_by_chain(call: CallbackQueryHandler, chain, chain_currency
     if chain == 'Optimism' or chain == 'Arbitrum':
         page_text = (
             f'<strong>▫️<a href="{link}">{chain}</a></strong>\n'
-            f'  ├ {native_currency}: <code>{f"{native_balance}".rstrip("0").rstrip(".")}</code> '
+            f'  ├ {native_currency}: <code>{f"{native_balance:.9f}".rstrip("0").rstrip(".")}</code> '
                                     f'<i>({f"{native_in_usd}".rstrip("0").rstrip(".")}$)</i>\n'
             f'  ├ {chain_currency_name}: <code>{f"{main_chain_currency_balance}".rstrip("0").rstrip(".")}</code> '
                                     f'<i>({f"{main_in_usdt}".rstrip("0").rstrip(".")}$)</i>\n'
@@ -69,7 +69,7 @@ async def get_balance_by_chain(call: CallbackQueryHandler, chain, chain_currency
     else:
         page_text = (
             f'<strong>▫️<a href="{link}">{chain}</a></strong>\n'
-            f'  ├ {native_currency}: <code>{f"{native_balance}".rstrip("0").rstrip(".")}</code> '
+            f'  ├ {native_currency}: <code>{f"{native_balance:.9f}".rstrip("0").rstrip(".")}</code> '
                                     f'<i>({f"{native_in_usd}".rstrip("0").rstrip(".")}$)</i>\n'
             f'  ├ {stable_name1}: <code>{f"{first_stablecoin_balance}".rstrip("0").rstrip(".")}</code>\n'
             f'  └ {stable_name2}: <code>{f"{second_stablecoin_balance}".rstrip("0").rstrip(".")}</code>\n\n'
@@ -83,7 +83,7 @@ async def get_balance_by_chain(call: CallbackQueryHandler, chain, chain_currency
         return total_balance
 
 
-async def polygon_mainnet(call: CallbackQueryHandler):
+async def polygon_mainnet(call: CallbackQuery):
     text = await get_balance_by_chain(call, chain='Polygon', chain_currency = None, chain_currency_name = None, 
                                       stable1='usdt_pol', stable2='usdc_pol',
                                       stable1_decimals=decimals_6, stable2_decimals=decimals_6,
@@ -91,7 +91,7 @@ async def polygon_mainnet(call: CallbackQueryHandler):
                                       stable_name1='USDT', stable_name2='USDC', flag=False, chain_checker = False)
     return text
 
-async def arbitrum_mainnet(call: CallbackQueryHandler):
+async def arbitrum_mainnet(call: CallbackQuery):
     text = await get_balance_by_chain(call, chain='Arbitrum', chain_currency = 'arb_arb', chain_currency_name = 'ARB', 
                                       stable1='usdt_arb', stable2='usdc_arb',
                                       stable1_decimals=decimals_6, stable2_decimals=decimals_6,
@@ -99,7 +99,7 @@ async def arbitrum_mainnet(call: CallbackQueryHandler):
                                       stable_name1='USDT', stable_name2='USDC', flag=False, chain_checker = True)
     return text
 
-async def optimism_mainnet(call: CallbackQueryHandler):
+async def optimism_mainnet(call: CallbackQuery):
     text = await get_balance_by_chain(call, chain='Optimism', chain_currency = 'op_op', chain_currency_name = 'OP', 
                                       stable1='usdt_op', stable2='usdc_op',
                                       stable1_decimals=decimals_6, stable2_decimals=decimals_6,
@@ -107,7 +107,7 @@ async def optimism_mainnet(call: CallbackQueryHandler):
                                       stable_name1='USDT', stable_name2='USDC', flag=False, chain_checker = True)
     return text
 
-async def base_mainnet(call: CallbackQueryHandler):
+async def base_mainnet(call: CallbackQuery):
     text = await get_balance_by_chain(call, chain='Base', chain_currency = None, chain_currency_name = None, 
                                       stable1='usdc_base', stable2='dai_base',
                                       stable1_decimals=decimals_6, stable2_decimals=decimals_18,
@@ -117,7 +117,7 @@ async def base_mainnet(call: CallbackQueryHandler):
 
 
 
-async def main_page(call: CallbackQueryHandler):
+async def main_page(call: CallbackQuery):
     user_id = call.from_user.id
     user_data = users_data_dict[user_id]
     address = user_data['Wallet_address']

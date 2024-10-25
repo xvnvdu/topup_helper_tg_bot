@@ -1,6 +1,6 @@
 from aiogram import Bot, Router
+from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
-from aiogram.handlers import CallbackQueryHandler
 
 from config import yookassa_test_token
 from .main_bot import pending_payments, pending_payments_info
@@ -11,7 +11,7 @@ router = Router()
 
 
 @router.callback_query()
-async def stars_63(call: CallbackQueryHandler, bot: Bot):
+async def stars_63(call: CallbackQuery, bot: Bot):
     user_id = call.from_user.id
     link_63 = await bot.create_invoice_link(
         title='пополнение на 100₽',
@@ -32,7 +32,7 @@ async def stars_63(call: CallbackQueryHandler, bot: Bot):
                                  parse_mode='HTML', reply_markup=stars_payment_100_keyboard)
 
 @router.callback_query()
-async def stars_125(call: CallbackQueryHandler, bot: Bot):
+async def stars_125(call: CallbackQuery, bot: Bot):
     user_id = call.from_user.id
     link_125 = await bot.create_invoice_link(
         title='пополнение на 200₽',
@@ -53,7 +53,7 @@ async def stars_125(call: CallbackQueryHandler, bot: Bot):
                                  parse_mode='HTML', reply_markup=stars_payment_200_keyboard)
 
 @router.callback_query()
-async def stars_250(call: CallbackQueryHandler, bot: Bot):
+async def stars_250(call: CallbackQuery, bot: Bot):
     user_id = call.from_user.id
     link_250 = await bot.create_invoice_link(
         title='пополнение на 400₽',
@@ -74,7 +74,7 @@ async def stars_250(call: CallbackQueryHandler, bot: Bot):
                                  parse_mode='HTML', reply_markup=stars_payment_400_keyboard)
 
 @router.callback_query()
-async def stars_313(call: CallbackQueryHandler, bot: Bot):
+async def stars_313(call: CallbackQuery, bot: Bot):
     user_id = call.from_user.id
     link_313 = await bot.create_invoice_link(
         title='пополнение на 500₽',
@@ -97,7 +97,7 @@ async def stars_313(call: CallbackQueryHandler, bot: Bot):
 
 
 @router.callback_query()
-async def rub_100(call: CallbackQueryHandler, bot: Bot):
+async def rub_100(call: CallbackQuery, bot: Bot):
     user_id = call.from_user.id
     link_100 = await bot.create_invoice_link(
         title='Пополнение баланса на 100₽',
@@ -119,7 +119,7 @@ async def rub_100(call: CallbackQueryHandler, bot: Bot):
                                  parse_mode='HTML', reply_markup=rub_payment_100_keyboard)
 
 @router.callback_query()
-async def rub_200(call: CallbackQueryHandler, bot: Bot):
+async def rub_200(call: CallbackQuery, bot: Bot):
     user_id = call.from_user.id
     link_200 = await bot.create_invoice_link(
         title='Пополнение баланса на 200₽',
@@ -140,7 +140,7 @@ async def rub_200(call: CallbackQueryHandler, bot: Bot):
                                  parse_mode='HTML', reply_markup=rub_payment_200_keyboard)
 
 @router.callback_query()
-async def rub_400(call: CallbackQueryHandler, bot: Bot):
+async def rub_400(call: CallbackQuery, bot: Bot):
     user_id = call.from_user.id
     link_400 = await bot.create_invoice_link(
         title='Пополнение баланса на 400₽',
@@ -161,7 +161,7 @@ async def rub_400(call: CallbackQueryHandler, bot: Bot):
                                  parse_mode='HTML', reply_markup=rub_payment_400_keyboard)
 
 @router.callback_query()
-async def rub_500(call: CallbackQueryHandler, bot: Bot):
+async def rub_500(call: CallbackQuery, bot: Bot):
     user_id = call.from_user.id
     link_500 = await bot.create_invoice_link(
         title='Пополнение баланса на 500₽',

@@ -6,6 +6,7 @@ from logger import logger
 from .price_parser import return_matic_price, return_eth_price, return_arb_price, return_op_price
 
 
+# АДРЕСА КОНТРАКТОВ ERC20
 contracts = {
     'usdt_pol': '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
     'usdc_pol': '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
@@ -20,6 +21,7 @@ contracts = {
 }
 
 
+# ABI ДЛЯ ERC20
 class DefaultABIs:
     Token = [
         {
@@ -95,6 +97,7 @@ class DefaultABIs:
         }]
 
 
+# ШАБЛОН ДЛЯ СЕТЕЙ
 class Network:
     def __init__(self, 
                  name: str,
@@ -131,6 +134,7 @@ class Network:
             self.coin_symbol = self.coin_symbol.upper()
 
 
+# ДАННЫЕ ПО СЕТЯМ
 class Networks:
     networks = {
         'Polygon': Network(
@@ -171,6 +175,7 @@ class Networks:
     }
 
 
+# ШАБЛОН ДЛЯ МОНЕТ
 class Currency:
     def __init__(self,
                  decimals: int,
@@ -182,6 +187,7 @@ class Currency:
         self.return_price = return_price
 
 
+# ДАННЫЕ ПО МОНЕТАМ В КАЖДОЙ СЕТИ
 class Currencies:
     currencies = {
             'Polygon':
