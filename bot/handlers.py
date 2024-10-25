@@ -363,27 +363,27 @@ async def message_input_handler(message: Message, state: FSMContext):
     
 
 # ХЭНДЛЕР ДЛЯ ПОПОЛНЕНИЯ БАЛАНСА
-@router.message(CustomPaymentState.waiting_for_custom_rub_amount)
-async def process_custom_rub_amount(message: Message, bot: Bot, state: FSMContext):
-    user_id = message.from_user.id
-    user_input = message.text.replace(',', '.')
-    try:
-        amount = float(user_input)
-        amount = int(amount)
-        if amount >= 60:
-            pending_payments[user_id] = amount
-            pending_payments_info[user_id] = 'Пополнение баланса — ЮKassa'
-            await message.delete()
-            await rub_custom(message, bot, state)
-        else:
-            await message.delete()
-            await message.answer('<strong>Выберите удобный способ пополнения баланса:</strong>',
-                                 parse_mode='HTML', reply_markup=payment_keyboard)
-    except ValueError:
-        await message.delete()
-        await message.answer('<strong>Выберите удобный способ пополнения баланса:</strong>',
-                                     parse_mode='HTML', reply_markup=payment_keyboard)
-    await state.clear()
+# @router.message(CustomPaymentState.waiting_for_custom_rub_amount)
+# async def process_custom_rub_amount(message: Message, bot: Bot, state: FSMContext):
+#     user_id = message.from_user.id
+#     user_input = message.text.replace(',', '.')
+#     try:
+#         amount = float(user_input)
+#         amount = int(amount)
+#         if amount >= 60:
+#             pending_payments[user_id] = amount
+#             pending_payments_info[user_id] = 'Пополнение баланса — ЮKassa'
+#             await message.delete()
+#             await rub_custom(message, bot, state)
+#         else:
+#             await message.delete()
+#             await message.answer('<strong>Выберите удобный способ пополнения баланса:</strong>',
+#                                  parse_mode='HTML', reply_markup=payment_keyboard)
+#     except ValueError:
+#         await message.delete()
+#         await message.answer('<strong>Выберите удобный способ пополнения баланса:</strong>',
+#                                      parse_mode='HTML', reply_markup=payment_keyboard)
+#     await state.clear()
 
 @router.message(CustomPaymentState.waiting_for_custom_stars_amount)
 async def process_custom_stars_amount(message: Message, bot: Bot, state: FSMContext):

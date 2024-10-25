@@ -204,13 +204,11 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
         if user_id in pending_payments:
             del pending_payments[user_id]
             del pending_payments_info[user_id]
-        await call.message.edit_text('<strong>Выберите сумму для оплаты или введите ее вручную:</strong>\n'
-                                     '<i>Минимальная сумма для пополнения через ЮKassa — 60₽</i>\n\n'
-                                     '<i>⚠️ Обратите внимание, что на данный момент оплата через ЮKassa'
-                                     ' происходит в тестовом режиме, любые депозиты до подключения'
-                                     ' платежной системы будут обнулены!</i>',
+        await call.message.edit_text('<s><strong>Выберите сумму для оплаты или введите ее вручную:</strong>\n'
+                                     '<i>Минимальная сумма для пополнения через ЮKassa — 60₽</i></s>\n\n'
+                                     '<i>⛔️ На данный момент оплата этим способом недоступна! </i>',
                                      parse_mode='HTML', reply_markup=yk_payment_keyboard)
-        await state.set_state(CustomPaymentState.waiting_for_custom_rub_amount)
+        # await state.set_state(CustomPaymentState.waiting_for_custom_rub_amount)
         
     elif call.data == 'stars':
         logger.info(f'Пользователь {user_id} вошел в пополнение Stars')
@@ -219,21 +217,10 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
         await call.message.edit_text('<strong>Выберите сумму для оплаты или введите ее вручную:</strong>',
                                      parse_mode='HTML', reply_markup=stars_keyboard)
         await state.set_state(CustomPaymentState.waiting_for_custom_stars_amount)
+    
+    elif 'in_stars' in call.data:
+        await payments.stars_payment(call, bot)
         
-    elif call.data == '100_in_stars':                           # СДЕЛАТЬ РЕФАКТОРИНГ
-        await payments.stars_63(call, bot)
-    elif call.data == '200_in_stars':                           # Переписать с динамической
-        await payments.stars_125(call, bot)                     # подстановкой значений 
-    elif call.data == '400_in_stars':
-        await payments.stars_250(call, bot)
-    elif call.data == '500_in_stars':
-        await payments.stars_313(call, bot)
-    elif call.data == '100_in_rub':
-        await payments.rub_100(call, bot)
-    elif call.data == '200_in_rub':
-        await payments.rub_200(call, bot)
-    elif call.data == '400_in_rub':
-        await payments.rub_400(call, bot)
-    elif call.data == '500_in_rub':
-        await payments.rub_500(call, bot)        
-        
+    elif 'in_rub' in call.data:
+        await payments.rub_payment(call, bot)
+
