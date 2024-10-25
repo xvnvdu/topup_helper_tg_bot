@@ -11,6 +11,8 @@ from bot.main_bot import Support, get_time, support_data_dict, id_generator
 from bot.bot_buttons import continue_application_keyboard, answer_message_keyboard, support_keyboard, cancel_application_keyboard
 
 
+''' ГЛАВНАЯ СТРАНИЦА РАЗДЕЛА ПОДДЕРЖКИ '''
+
 async def bot_support(call: CallbackQuery):
     await call.message.edit_text('<strong>Поддержка TopUp Helper 🤖</strong>\n\n'
                                  '<b>Здесь вы можете оставить свое сообщение, если:</b>\n'
@@ -21,6 +23,8 @@ async def bot_support(call: CallbackQuery):
                                  '❔ Появились вопросы (любые, касательно бота)</i>', parse_mode='HTML', 
                                  reply_markup=support_keyboard)
     
+
+''' ОТПРАВКА НОВОГО СООБЩЕНИЯ В ПОДДЕРЖКУ '''
 
 async def message_to_support(message: Message, bot: Bot, state: FSMContext):
     user_id = message.from_user.id
@@ -43,6 +47,8 @@ async def message_to_support(message: Message, bot: Bot, state: FSMContext):
     await bot.send_message(chat_id=admin, text=text, parse_mode='HTML', reply_markup=answer_message_keyboard(user_id, number, today, time_now))
     
     
+''' ПРОДОЛЖИТЬ ДИАЛОГ В РАМКАХ ОБРАЩЕНИЯ '''
+    
 async def continue_application(call: CallbackQuery, state: FSMContext):
     await state.set_state(Support.continue_application)
     
@@ -59,6 +65,8 @@ async def continue_application(call: CallbackQuery, state: FSMContext):
                                  reply_markup=cancel_application_keyboard(user_id, number, today, time_now))
  
  
+''' ОТМЕНИТЬ ОТПРАВКУ СООБЩЕНИЯ ПРИ ПРОДОЛЖЕНИИ ДИАЛОГА '''
+ 
 async def cancel_application(call: CallbackQuery, state: FSMContext):
     user_id = call.data.split('_')[2]
     number = call.data.split('_')[3]
@@ -71,6 +79,8 @@ async def cancel_application(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text(text, parse_mode='HTML', reply_markup=continue_application_keyboard(user_id, number, today, time_now))
     await state.clear()
  
+ 
+''' ОТПРАВИТЬ СООБЩЕНИЕ В РАМКАХ ОБРАЩЕНИЯ '''
  
 async def send_application(message: Message, bot: Bot, state: FSMContext):
 	application = message.text

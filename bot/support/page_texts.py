@@ -1,3 +1,5 @@
+''' ГЕНЕРАЦИЯ ТЕКСТА СООБЩЕНИЯ '''
+
 async def admin_page_text(number: str, user_id: int, user_message: str):
     page_text = (f'🆘 <b>Сообщение от пользователя</b>\n<i>Обращение</i> #{number}\n\n'
             f'<b>ID:</b> <code>{user_id}</code>\n\n<b>📩Сообщение:</b>\n{user_message}')

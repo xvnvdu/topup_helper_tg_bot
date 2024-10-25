@@ -15,6 +15,8 @@ decimals_18 = 10 ** 18
 decimals_6 = 10 ** 6
 
 
+''' ГЕНЕРАЦИЯ СТРАНИЦ СЕТЕЙ / ОБЩЕГО БАЛАНСА '''
+
 async def get_balance_by_chain(call: CallbackQuery, chain, chain_currency, chain_currency_name, stable1, stable2,
                                stable1_decimals, stable2_decimals, link, native_currency,
                                stable_name1, stable_name2, flag: False, chain_checker: False):
@@ -83,6 +85,8 @@ async def get_balance_by_chain(call: CallbackQuery, chain, chain_currency, chain
         return total_balance
 
 
+''' ПОЛУЧЕНИЕ БАЛАНСА В СЕТИ '''
+
 async def polygon_mainnet(call: CallbackQuery):
     text = await get_balance_by_chain(call, chain='Polygon', chain_currency = None, chain_currency_name = None, 
                                       stable1='usdt_pol', stable2='usdc_pol',
@@ -116,6 +120,7 @@ async def base_mainnet(call: CallbackQuery):
     return text
 
 
+''' ГЕНЕРАЦИЯ ГЛАВНОЙ СТРАНИЦЫ '''
 
 async def main_page(call: CallbackQuery):
     user_id = call.from_user.id

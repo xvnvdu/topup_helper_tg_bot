@@ -23,6 +23,7 @@ from .bot_buttons import (menu_keyboard, account_keyboard, payment_keyboard, cry
                          log_buttons, back_to_account_keyboard, step_back_keyboard, confirm_sending_keyboard, chains_keyboard)
 
 
+''' ОСНОВНЫЕ КОЛЛБЭКИ ОТ КНОПОК '''
 
 async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
     user_id = call.from_user.id

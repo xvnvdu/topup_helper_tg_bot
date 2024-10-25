@@ -15,7 +15,8 @@ from .main_bot import (id_generator, total_values, save_total, save_data, save_p
 router = Router()
 
 
-# ВВОД СУММЫ ПЕРЕВОДА
+''' ВВОД СУММЫ ПЕРЕВОДА '''
+
 async def amount_input(message: Message, state: FSMContext):
     user_id = message.from_user.id
     user_amount = message.text.replace(',', '.')
@@ -50,7 +51,8 @@ async def amount_input(message: Message, state: FSMContext):
         await state.clear()
 
 
-# ВВОД ID ПОЛУЧАТЕЛЯ
+''' ВВОД ID ПОЛУЧАТЕЛЯ '''
+
 async def id_input(message: Message, state: FSMContext):
     user_id = message.from_user.id
     user_input = message.text
@@ -88,7 +90,8 @@ async def id_input(message: Message, state: FSMContext):
         await state.clear()
 
 
-# ВВОД СООБЩЕНИЯ ДЛЯ ПОЛУЧАТЕЛЯ
+''' ВВОД СООБЩЕНИЯ ДЛЯ ПОЛУЧАТЕЛЯ '''
+
 async def message_input(message: Message, state: FSMContext):
     user_id = message.from_user.id
     user_input = message.text
@@ -117,7 +120,8 @@ async def message_input(message: Message, state: FSMContext):
     await state.clear()
 
 
-# ПЕРЕВОД БАЛАНСА
+''' ПЕРЕВОД БАЛАНСА '''
+
 async def send_to_user(call: CallbackQuery, bot: Bot, state: FSMContext):
     user_id = call.from_user.id
     user_data = users_data_dict[user_id]

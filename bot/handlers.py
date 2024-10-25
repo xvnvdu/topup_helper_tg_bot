@@ -24,7 +24,8 @@ from .main_bot import (users_data, users_payments, users_data_dict, users_paymen
 router = Router()
 
 
-# ХЭНДЛЕР ДЛЯ ВЫЗОВА МЕНЮ
+''' ХЭНДЛЕР ДЛЯ ВЫЗОВА МЕНЮ '''
+
 @router.message(Command('menu'))
 async def command_menu(message: Message):
     user_id = message.from_user.id
@@ -39,7 +40,8 @@ async def command_menu(message: Message):
         await confirm_phone(message)
 
 
-# ХЭНДЛЕР ДЛЯ ВЫЗОВА АККАУНТА
+''' ХЭНДЛЕР ДЛЯ ВЫЗОВА АККАУНТА '''
+
 @router.message(Command('account'))
 async def command_account(message: Message):
     user_id = message.from_user.id
@@ -72,7 +74,8 @@ async def command_account(message: Message):
         await confirm_phone(message)
 
 
-# ХЭНДЛЕР ДЛЯ ВЫЗОВА ПОПОЛНЕНИЯ БАЛАНСА
+''' ХЭНДЛЕР ДЛЯ ВЫЗОВА ПОПОЛНЕНИЯ БАЛАНСА '''
+
 @router.message(Command('balance'))
 async def command_balance(message: Message):
     user_id = message.from_user.id
@@ -87,7 +90,8 @@ async def command_balance(message: Message):
         await confirm_phone(message)
 
 
-# ХЭНДЛЕР ДЛЯ ВЫЗОВА КРИПТОКОШЕЛЬКА
+''' ХЭНДЛЕР ДЛЯ ВЫЗОВА КРИПТОКОШЕЛЬКА '''
+
 @router.message(Command('crypto'))
 async def command_crypto(message: Message, bot: Bot):
     user_id = message.from_user.id
@@ -112,7 +116,8 @@ async def command_crypto(message: Message, bot: Bot):
         await confirm_phone(message)
 
 
-# ХЭНДЛЕР КОМАНДЫ СТАРТ
+''' ХЭНДЛЕР КОМАНДЫ СТАРТ '''
+
 @router.message(Command('start'))
 async def start(message: Message):
     user_id = message.from_user.id
@@ -159,13 +164,15 @@ async def start(message: Message):
         await command_menu(message)
 
 
-# ХЭНДЛЕР ОПЛАТЫ
+''' ХЭНДЛЕР ОПЛАТЫ '''
+
 @router.pre_checkout_query()
 async def pre_checkout_query(pre_checkout_query: PreCheckoutQuery, bot: Bot):
     await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 
-# ХЭНДЛЕР УСПЕШНОЙ ОПЛАТЫ
+''' ХЭНДЛЕР УСПЕШНОЙ ОПЛАТЫ '''
+
 @router.message(F.successful_payment)
 async def successful_payment(message: Message):
     user_id = message.from_user.id
@@ -212,7 +219,8 @@ async def successful_payment(message: Message):
         del pending_payments[user_id]
 
 
-# ХЭНДЛЕР ОТПРАВКИ КОНТАКТА
+''' ХЭНДЛЕР ОТПРАВКИ КОНТАКТА '''
+
 @router.message(F.contact)
 async def check_contact(message: Message):
     user_id = message.from_user.id
@@ -242,7 +250,8 @@ async def check_contact(message: Message):
         await confirm_phone(message)
 
 
-# ХЭНДЛЕРЫ ДЛЯ РАЗДЕЛА ПОДДЕРЖКИ
+''' ХЭНДЛЕРЫ ДЛЯ РАЗДЕЛА ПОДДЕРЖКИ '''
+
 @router.message(Support.message_to_support)
 async def message_to_support_handler(message: Message, bot: Bot, state: FSMContext):
     await message_to_support(message, bot, state)
@@ -268,7 +277,8 @@ async def send_application_handler(message: Message, bot: Bot, state: FSMContext
 #     pass
 
 
-# ХЭНДЛЕРЫ ДЛЯ КРИПТОКОШЕЛЬКА
+''' ХЭНДЛЕРЫ ДЛЯ КРИПТОКОШЕЛЬКА '''
+
 @router.callback_query(lambda call: call.data.endswith('_fund'))
 async def callback_fund_crypto(call: CallbackQuery, state: FSMContext):
     await state.set_state(CryptoPayments.fund_wallet)
@@ -342,13 +352,15 @@ async def callback_bridge_crypto(call: CallbackQuery):
     logger.info(f'Пользователь {user_id} вошел в бридж.')
 
 
-# ХЭНДЛЕР КОЛЛБЭКОВ
+''' ХЭНДЛЕР КОЛЛБЭКОВ '''
+
 @router.callback_query()
 async def callback_handler(call: CallbackQuery, bot: Bot, state: FSMContext):
     await main_callbacks(call, bot, state)
 
 
-# ХЭНДЛЕРЫ ДЛЯ ПЕРЕВОДА БАЛАНСА
+''' ХЭНДЛЕРЫ ДЛЯ ПЕРЕВОДА БАЛАНСА '''
+
 @router.message(SendToFriend.amount_input)
 async def amount_input_handler(message: Message, state: FSMContext):
     await amount_input(message, state)
@@ -362,28 +374,7 @@ async def message_input_handler(message: Message, state: FSMContext):
     await message_input(message, state)
     
 
-# ХЭНДЛЕР ДЛЯ ПОПОЛНЕНИЯ БАЛАНСА
-# @router.message(CustomPaymentState.waiting_for_custom_rub_amount)
-# async def process_custom_rub_amount(message: Message, bot: Bot, state: FSMContext):
-#     user_id = message.from_user.id
-#     user_input = message.text.replace(',', '.')
-#     try:
-#         amount = float(user_input)
-#         amount = int(amount)
-#         if amount >= 60:
-#             pending_payments[user_id] = amount
-#             pending_payments_info[user_id] = 'Пополнение баланса — ЮKassa'
-#             await message.delete()
-#             await rub_custom(message, bot, state)
-#         else:
-#             await message.delete()
-#             await message.answer('<strong>Выберите удобный способ пополнения баланса:</strong>',
-#                                  parse_mode='HTML', reply_markup=payment_keyboard)
-#     except ValueError:
-#         await message.delete()
-#         await message.answer('<strong>Выберите удобный способ пополнения баланса:</strong>',
-#                                      parse_mode='HTML', reply_markup=payment_keyboard)
-#     await state.clear()
+''' ХЭНДЛЕР ДЛЯ ПОПОЛНЕНИЯ БАЛАНСА '''
 
 @router.message(CustomPaymentState.waiting_for_custom_stars_amount)
 async def process_custom_stars_amount(message: Message, bot: Bot, state: FSMContext):
@@ -407,15 +398,39 @@ async def process_custom_stars_amount(message: Message, bot: Bot, state: FSMCont
                                      parse_mode='HTML', reply_markup=payment_keyboard)
     await state.clear()
 
+# @router.message(CustomPaymentState.waiting_for_custom_rub_amount)
+# async def process_custom_rub_amount(message: Message, bot: Bot, state: FSMContext):
+#     user_id = message.from_user.id
+#     user_input = message.text.replace(',', '.')
+#     try:
+#         amount = float(user_input)
+#         amount = int(amount)
+#         if amount >= 60:
+#             pending_payments[user_id] = amount
+#             pending_payments_info[user_id] = 'Пополнение баланса — ЮKassa'
+#             await message.delete()
+#             await rub_custom(message, bot, state)
+#         else:
+#             await message.delete()
+#             await message.answer('<strong>Выберите удобный способ пополнения баланса:</strong>',
+#                                  parse_mode='HTML', reply_markup=payment_keyboard)
+#     except ValueError:
+#         await message.delete()
+#         await message.answer('<strong>Выберите удобный способ пополнения баланса:</strong>',
+#                                      parse_mode='HTML', reply_markup=payment_keyboard)
+#     await state.clear()
 
-# ХЭНДЛЕР ВВОДА РАНДОМНОГО СООБЩЕНИЯ
+
+''' ХЭНДЛЕР ВВОДА РАНДОМНОГО СООБЩЕНИЯ '''
+
 @router.message()
 async def any_message(message: Message, state: FSMContext):
     await command_menu(message)
     await state.clear()
 
 
-# ХЭНДЛЕР ПОДТВЕРЖДЕНИЯ НОМЕРА ТЕЛЕФОНА
+''' ХЭНДЛЕР ПОДТВЕРЖДЕНИЯ НОМЕРА ТЕЛЕФОНА '''
+
 @router.message()
 async def confirm_phone(message: Message):
     user_id = message.from_user.id

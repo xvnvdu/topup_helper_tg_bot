@@ -4,7 +4,8 @@ from aiogram.types import CallbackQuery
 from .main_bot import users_payments_dict
 
 
-# ГЕНЕРАЦИЯ ЛОГА ТРАНЗАКЦИЙ
+''' ГЕНЕРАЦИЯ ЛОГА ТРАНЗАКЦИЙ '''
+
 async def sorted_payments(call: CallbackQuery):
     user_id = call.from_user.id
     user_transactions_info = users_payments_dict[user_id]['Transactions']

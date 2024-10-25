@@ -4,7 +4,8 @@ from datetime import datetime
 from aiogram.fsm.state import StatesGroup, State
 
 
-# ВРЕМЕННЫЕ ХРАНИЛИЩА ДАННЫХ ПРИ ПОПОЛНЕНИИ
+''' ВРЕМЕННЫЕ ХРАНИЛИЩА ДАННЫХ ПРИ ПОПОЛНЕНИИ '''
+
 ok_to_fund = {}
 pending_fund_info = {}
 pending_chain_fund = {}
@@ -13,7 +14,8 @@ pending_fund_trx_id = {}
 pending_crypto_fund_amount = {}
 
 
-# ВРЕМЕННЫЕ ХРАНИЛИЩА ДАННЫХ ПРИ ВЫВОДЕ
+''' ВРЕМЕННЫЕ ХРАНИЛИЩА ДАННЫХ ПРИ ВЫВОДЕ '''
+
 ok_to_withdraw = {}
 pending_user_balance = {}
 pending_withdraw_info = {}
@@ -28,14 +30,16 @@ pending_currency_to_withdraw = {}
 pending_crypto_withdraw_amount = {}
 
 
-# ПОЛУЧЕНИЕ ВРЕМЕНИ
+''' ПОЛУЧЕНИЕ ВРЕМЕНИ '''
+
 async def get_time() -> Any:
     today = datetime.now().strftime('%d.%m.%Y')
     time_now = datetime.now().strftime('%H:%M:%S')
     return today, time_now
 
 
-# ОЖИДАНИЕ ИНПУТА ОТ ПОЛЬЗОВАТЕЛЯ
+''' ОЖИДАНИЕ ИНПУТА ОТ ПОЛЬЗОВАТЕЛЯ '''
+
 class CryptoPayments(StatesGroup):
     fund_wallet = State()
     amount_to_withdraw = State()
@@ -44,7 +48,8 @@ class CryptoPayments(StatesGroup):
     bridge = State()
 
 
-# ГЕНЕРАЦИЯ НОВОГО КОШЕЛЬКА
+''' ГЕНЕРАЦИЯ НОВОГО КОШЕЛЬКА '''
+
 async def create_new_wallet() -> Any:
     wallet = Web3().eth.account.create()
     wallet_address = wallet.address

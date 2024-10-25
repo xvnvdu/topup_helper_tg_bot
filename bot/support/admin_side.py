@@ -10,6 +10,8 @@ from bot.main_bot import Support, get_time, support_data_dict
 from bot.bot_buttons import continue_application_keyboard, cancel_answer_keyboard, answer_message_keyboard
 
 
+''' ОТВЕТ НА СООБЩЕНИЕ '''
+
 async def answer_message(call: CallbackQuery, state: FSMContext):
     await state.set_state(Support.answer_message)
     
@@ -26,6 +28,8 @@ async def answer_message(call: CallbackQuery, state: FSMContext):
                                  reply_markup=cancel_answer_keyboard(user_id, number, today, time_now))
 
 
+''' ОТМЕНИТЬ ОТВЕТ '''
+
 async def cancel_answer(call: CallbackQuery, state: FSMContext):    
     user_id = call.data.split('_')[2]
     number = call.data.split('_')[3]
@@ -38,6 +42,8 @@ async def cancel_answer(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text(text, parse_mode='HTML', reply_markup=answer_message_keyboard(user_id, number, today, time_now))
     await state.clear()
 
+
+''' ОТПРАВКА ОТВЕТА '''
 
 async def send_answer(message: Message, bot: Bot, state: FSMContext):
     answer = message.text

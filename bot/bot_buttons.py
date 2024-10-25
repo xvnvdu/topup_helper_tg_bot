@@ -4,7 +4,8 @@ from aiogram.types import CallbackQuery
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-# КНОПКИ РАЗДЕЛА МЕНЮ
+''' КНОПКИ РАЗДЕЛА МЕНЮ '''
+
 menu_buttons = [
     [InlineKeyboardButton(text='👨‍💻 Мой аккаунт', callback_data='account'),
      InlineKeyboardButton(text='💳 Пополнить', callback_data='topup')],
@@ -13,7 +14,8 @@ menu_buttons = [
 menu_keyboard = InlineKeyboardMarkup(inline_keyboard=menu_buttons)
 
 
-# КНОПКИ РАЗДЕЛА АККАУНТ
+''' КНОПКИ РАЗДЕЛА АККАУНТ '''
+
 account_buttons = [
     [InlineKeyboardButton(text='📝 Мои операции', callback_data='transactions'),
     InlineKeyboardButton(text='🙋‍♂️ Перевод другу', callback_data='send')],
@@ -28,7 +30,8 @@ back_to_account = [
 back_to_account_keyboard = InlineKeyboardMarkup(inline_keyboard=back_to_account)
 
 
-# КНОПКИ РАЗДЕЛА ПОДДЕРЖКИ
+''' КНОПКИ РАЗДЕЛА ПОДДЕРЖКИ '''
+
 back_to_support_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[[InlineKeyboardButton(text='← Назад', callback_data='support')]],
 )
@@ -59,7 +62,8 @@ def cancel_application_keyboard(user_id, number, today, time_now) -> Any:
         )
 
 
-# КНОПКИ РАЗДЕЛА ПЕРЕВОДА БАЛАНСА
+''' КНОПКИ РАЗДЕЛА ПЕРЕВОДА БАЛАНСА '''
+
 try_again_amount_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='🙋‍♂️ Перевод другу', callback_data='send')]]
     )
@@ -86,7 +90,8 @@ skip_message_keyboard = InlineKeyboardMarkup(
 )
 
 
-# КНОПКИ ЖУРНАЛА ТРАНЗАКЦИЙ
+''' КНОПКИ ЖУРНАЛА ТРАНЗАКЦИЙ '''
+
 zero_transactions_buttons = [
     [InlineKeyboardButton(text='🤑 Перейти к пополнению', callback_data='topup')],
     [InlineKeyboardButton(text='← Назад', callback_data='account')]
@@ -122,7 +127,8 @@ async def log_buttons(call: CallbackQuery, page_text, current_page: int, total_p
     await call.message.edit_text(text=page_text, parse_mode='HTML', reply_markup=trx_log_keyboard, disable_web_page_preview=True)
 
 
-# КНОПКИ РАЗДЕЛА ПОПОЛНЕНИЕ БАЛАНСА
+''' КНОПКИ РАЗДЕЛА ПОПОЛНЕНИЕ БАЛАНСА '''
+
 payment_buttons = [
     [InlineKeyboardButton(text='🟣 ЮKassa', callback_data='YK')],
     [InlineKeyboardButton(text='⭐️ Telegram Stars', callback_data='stars')],
@@ -149,7 +155,8 @@ yk_payment_buttons = [
 yk_payment_keyboard = InlineKeyboardMarkup(inline_keyboard=yk_payment_buttons)
 
 
-# КНОПКИ РАЗДЕЛА КРИПТОКОШЕЛЕК
+''' КНОПКИ РАЗДЕЛА КРИПТОКОШЕЛЕК '''
+
 crypto_buttons = [
     [InlineKeyboardButton(text='🟣 Polygon', callback_data='Polygon'),
     InlineKeyboardButton(text='🔵 Base', callback_data='Base')],

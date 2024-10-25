@@ -15,7 +15,8 @@ from .main_crypto import (CryptoPayments, pending_crypto_withdraw_amount, pendin
                           pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, pending_user_balance_in_usd, pending_withdraw_trx_id, get_time)
 
 
-# ВЫБОР МОНЕТЫ ДЛЯ ВЫВОДА
+''' ВЫБОР МОНЕТЫ ДЛЯ ВЫВОДА '''
+
 async def withdraw_choice(call: CallbackQuery):
 	user_id = call.from_user.id
 	user_data = users_data_dict[user_id]
@@ -63,7 +64,8 @@ async def withdraw_choice(call: CallbackQuery):
 	await call.message.edit_text(text=text, parse_mode='HTML', reply_markup=crypto_amount_to_withdraw(chain, currency))
 
 
-# ВЫБОР СУММЫ ДЛЯ ВЫВОДА
+''' ВЫБОР СУММЫ ДЛЯ ВЫВОДА '''
+
 async def amount_to_withdraw(message: Message, state: FSMContext):
 	user_id = message.from_user.id
 	user_amount = message.text.replace(',', '.')	
@@ -129,7 +131,8 @@ async def amount_to_withdraw(message: Message, state: FSMContext):
 		await state.clear()
 
 
-# ПОВТОРНЫЙ ВВОД АДРЕСА ПОЛУЧАТЕЛЯ
+''' ПОВТОРНЫЙ ВВОД АДРЕСА ПОЛУЧАТЕЛЯ '''
+
 async def try_another_address(call: CallbackQuery):
 	user_id = call.from_user.id
  
@@ -149,7 +152,8 @@ async def try_another_address(call: CallbackQuery):
 	await call.message.edit_text(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
 
 
-# ВВОД АДРЕСА И РАССЧЕТ КОМИССИИ
+''' ВВОД АДРЕСА И РАССЧЕТ КОМИССИИ '''
+
 async def address_input(message: Message, state: FSMContext):
 	user_id = message.from_user.id
 	user_data = users_data_dict[user_id]
@@ -258,7 +262,8 @@ async def address_input(message: Message, state: FSMContext):
 		await state.clear()
     
 
-# ПОДТВЕРЖДЕНИЕ ВЫВОДА
+''' ПОДТВЕРЖДЕНИЕ ВЫВОДА '''
+
 async def withdrawal_confirmed(call: CallbackQuery):
 	user_id = call.from_user.id
 	user_payments = users_payments_dict[user_id]['Transactions']
@@ -328,7 +333,8 @@ async def withdrawal_confirmed(call: CallbackQuery):
 										'<i>Повторите попытку позже.</i></strong>', parse_mode='HTML')
 
 
-# ИНИЦИАЦИЯ ВЫВОДА
+'''ИНИЦИАЦИЯ ВЫВОДА '''
+
 async def withdraw_crypto(call: CallbackQuery, chain):
 	user_id = call.from_user.id
 	user_data = users_data_dict[user_id]
@@ -352,7 +358,8 @@ async def withdraw_crypto(call: CallbackQuery, chain):
 		return hash_hex
 
 
-# ВВОД СУММЫ ЧЕРЕЗ КНОПКИ
+''' ВВОД СУММЫ ЧЕРЕЗ КНОПКИ '''
+
 async def buttons_withdraw_handler(call: CallbackQuery, state: FSMContext):
 	user_id = call.from_user.id
 
@@ -397,7 +404,8 @@ async def buttons_withdraw_handler(call: CallbackQuery, state: FSMContext):
 		await call.message.edit_text(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
 
 
-# ПРОВЕРКА НА УСТАРЕВШИЕ ТРАНЗАКЦИИ
+''' ПРОВЕРКА НА УСТАРЕВШИЕ ТРАНЗАКЦИИ '''
+
 async def try_to_withdraw(call: CallbackQuery):
     user_id = call.from_user.id
     
@@ -410,7 +418,8 @@ async def try_to_withdraw(call: CallbackQuery):
         await withdrawal_declined(call)
 
 
-# УСТАРЕВШАЯ ТРАНЗАКЦИЯ
+''' УСТАРЕВШАЯ ТРАНЗАКЦИЯ '''
+
 async def withdrawal_declined(call: CallbackQuery):
     user_id = call.from_user.id
     
