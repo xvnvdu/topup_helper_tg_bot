@@ -101,6 +101,8 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
         trx_info = pending_fund_info[user_id]
         trx_id = pending_fund_trx_id[user_id]
         total_values['Total_transactions_count'] += 1
+        total_values['Total_crypto_topups_count'] += 1
+        total_values['Total_crypto_topups_volume_rub'] += amount_rub
         trx_num = total_values['Total_transactions_count']
         user_data['Balance'] -= amount_rub
 

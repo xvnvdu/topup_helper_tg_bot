@@ -190,7 +190,7 @@ async def successful_payment(message: Message):
         trx_id = await id_generator()
         
         total_values['Total_topups_count'] += 1
-        total_values['Total_topups_volume'] += amount
+        total_values['Total_topups_volume_rub'] += amount
         total_values['Total_transactions_count'] += 1
         trx_num = total_values['Total_transactions_count']
         

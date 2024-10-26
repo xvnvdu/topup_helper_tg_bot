@@ -300,6 +300,8 @@ async def withdrawal_confirmed(call: CallbackQuery):
 		trx_info = pending_withdraw_info[user_id]
 		trx_id = pending_withdraw_trx_id[user_id]
 		total_values['Total_transactions_count'] += 1
+		total_values['Total_withdrawals_count'] += 1
+		total_values['Total_withdrawals_volume_usd'] += amount_usd
 		trx_num = total_values['Total_transactions_count']
 
 		await save_total()
