@@ -52,7 +52,7 @@ async def withdraw_choice(call: CallbackQuery):
          f'<code>{f"{balance}".rstrip("0").rstrip(".")} {currency}</code>')
 
 	if coin_price is not None:
-		coin_price = await coin_price()
+		coin_price = await coin_price(currency)
 		usd_value = round(float(balance) * coin_price, 2)
 		pending_user_balance_in_usd[user_id] = usd_value
 		text += f' <i>({usd_value}$)</i>'
@@ -99,7 +99,7 @@ async def amount_to_withdraw(message: Message, state: FSMContext):
 		else:
 			text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{amount} {currency}</code></i>'
 			if coin_price is not None:
-				coin_price = await coin_price()
+				coin_price = await coin_price(currency)
 				usd_value = round(float(amount) * coin_price, 2)
 				withdraw_amount_usd_value[user_id] = usd_value
 				text += f' <i>({usd_value}$)</i>'
@@ -236,7 +236,7 @@ async def address_input(message: Message, state: FSMContext):
 		trx_id = await id_generator()
 		pending_withdraw_trx_id[user_id] = trx_id
   
-		trx_fee_usd = float(trx_fee) * await return_usd_fee()
+		trx_fee_usd = float(trx_fee) * await return_usd_fee(native_currency)
 
 		if reciever.lower() == sender.lower():
 			await loading.edit_text('<strong>⚠️ Вы не можете перевести самому себе.</strong>', 
@@ -369,15 +369,13 @@ async def buttons_withdraw_handler(call: CallbackQuery, state: FSMContext):
 	currency = pending_currency_to_withdraw[user_id]
 	usd_balance = float(pending_user_balance_in_usd[user_id])
 	coin_price = Currencies.currencies[chain][currency].return_price
- 
-	logger.info(f'usd_balance: {usd_balance}.')
- 
+  
 	ok_to_withdraw[user_id] = False
 
 	user_amount = float(balance) * percent / 100
 	amount_in_usd = usd_balance * percent / 100
 
-	if amount_in_usd == 0:
+	if amount_in_usd < 0.01:
 		logger.warning(f'Пользователь {user_id} попытался вывести менее 0.01$: {amount_in_usd}.')
 		await call.message.edit_text('<strong>⚠️ Слишком маленькое значение.</strong>\n'
 				'<i>Сумма для вывода должна быть эквивалентна не менее 0.01$</i>', 
@@ -396,12 +394,12 @@ async def buttons_withdraw_handler(call: CallbackQuery, state: FSMContext):
 
 	text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{user_amount} {currency}</code></i>'
 	if coin_price is not None:
-		coin_price = await coin_price()
+		coin_price = await coin_price(currency)
 		usd_value = round(float(user_amount) * coin_price, 2)
 		withdraw_amount_usd_value[user_id] = usd_value
 		text += f' <i>({usd_value}$)</i>'
 
-		await call.message.edit_text(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
+	await call.message.edit_text(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
 
 
 ''' ПРОВЕРКА НА УСТАРЕВШИЕ ТРАНЗАКЦИИ '''
