@@ -137,10 +137,10 @@ payment_buttons = [
 payment_keyboard = InlineKeyboardMarkup(inline_keyboard=payment_buttons)
 
 stars_buttons = [
-        [InlineKeyboardButton(text='100₽ (63 ⭐️)', callback_data='100_in_stars'),
-         InlineKeyboardButton(text='200₽ (125 ⭐️)', callback_data='200_in_stars')],
-        [InlineKeyboardButton(text='400₽ (250 ⭐️)', callback_data='400_in_stars'),
-         InlineKeyboardButton(text='500₽ (313 ⭐️)', callback_data='500_in_stars')],
+        [InlineKeyboardButton(text='100₽ (67 ⭐️)', callback_data='100_in_stars'),
+         InlineKeyboardButton(text='200₽ (134 ⭐️)', callback_data='200_in_stars')],
+        [InlineKeyboardButton(text='400₽ (267 ⭐️)', callback_data='400_in_stars'),
+         InlineKeyboardButton(text='500₽ (334 ⭐️)', callback_data='500_in_stars')],
         [InlineKeyboardButton(text='← Назад', callback_data='topup')]
     ]
 stars_keyboard = InlineKeyboardMarkup(inline_keyboard=stars_buttons)

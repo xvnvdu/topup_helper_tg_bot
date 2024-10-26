@@ -31,7 +31,7 @@ async def fund(message: Message, state: FSMContext):
     usd_price = await return_usd_price()
 
     currency_price = round(((await return_asset_price('POL') * usd_price if chain == 'Polygon' 
-                      else await return_asset_price('ETH') * usd_price) * 1.05), 2)
+                      else await return_asset_price('ETH') * usd_price) * 1.2), 2)
         
     try:
         amount = float(user_amount)

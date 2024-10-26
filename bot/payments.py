@@ -16,7 +16,7 @@ router = Router()
 async def stars_payment(call: CallbackQuery, bot: Bot):
     user_id = call.from_user.id
     amount_rub = int(call.data.split('_')[0])
-    amount_stars = ceil(amount_rub / 1.6)
+    amount_stars = ceil(amount_rub / 1.5)
 
     link = await bot.create_invoice_link(
         title=f'пополнение на {amount_rub}₽',
@@ -43,7 +43,7 @@ async def stars_custom(message: Message, bot: Bot, state: FSMContext):
     amount = pending_payments[user_id]
     pending_payments_info[user_id] = 'Пополнение баланса — Stars'
     
-    stars_amount = ceil(amount/1.6)
+    stars_amount = ceil(amount/1.5)
     custom_stars_link = await bot.create_invoice_link(
         title=f'Пополнение баланса на {amount}₽',
         description=' ',
