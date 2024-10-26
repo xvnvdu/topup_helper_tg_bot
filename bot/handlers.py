@@ -272,10 +272,6 @@ async def continue_application_handler(call: CallbackQuery, state: FSMContext):
 async def send_application_handler(message: Message, bot: Bot, state: FSMContext):
     await send_application(message, bot, state)
 
-# @router.message(content_types=['photo'])
-# async def support_photo_handler(message: Message):
-#     pass
-
 
 ''' ХЭНДЛЕРЫ ДЛЯ КРИПТОКОШЕЛЬКА '''
 

@@ -13,6 +13,7 @@ from crypto.wallet_page_maker import main_page, polygon_mainnet, arbitrum_mainne
 
 from . import payments
 from .send_to_user import send_to_user
+from .support.rules import support_rules
 from .transactions_log import sorted_payments
 from .support.admin_side import cancel_answer
 from .support.user_side import cancel_application, bot_support
@@ -65,11 +66,16 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
         await state.clear()
         
     elif call.data == 'message_to_support':
+        logger.info(f'Пользователь {user_id} собирается отправить сообщение в поддержку.')
         await call.message.edit_text('📢 <b>Опишите вашу проблему ниже.</b>\n'
-                                 '<s><i>Вы также можете прикрепить фото к своему сообщению:</i></s>', 
+                                 '<i>Вы также можете прикрепить фото к своему сообщению.</i>', 
                                  parse_mode='HTML', reply_markup=back_to_support_keyboard)
         await state.set_state(Support.message_to_support)
         
+    elif call.data == 'support_rules':
+        logger.info(f'Пользователь {user_id} вошел в правила поддержки.')
+        await support_rules(call)
+    
     elif 'cancel_answer' in call.data:
         await cancel_answer(call, state)
         

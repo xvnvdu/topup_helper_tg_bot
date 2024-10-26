@@ -38,6 +38,7 @@ back_to_support_keyboard = InlineKeyboardMarkup(
 
 support_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[[InlineKeyboardButton(text='📢 Написать в поддержку', callback_data='message_to_support')],
+                     [InlineKeyboardButton(text='⭕️ Правила и требования к обращеням', callback_data='support_rules')],
                      [InlineKeyboardButton(text='← Назад', callback_data='account')]]
 )
 
