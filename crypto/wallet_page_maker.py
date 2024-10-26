@@ -34,10 +34,8 @@ async def get_balance_by_chain(call: CallbackQuery, chain, chain_currency, chain
 
     if chain_checker:
         main_chain_currency = contracts[chain_currency]
-        main_chain_currency_balance, main_price = await asyncio.gather(
-            get_token_balance(main_chain_currency, rpc, wallet_address, decimals_18),
-            return_asset_price('OP') if chain == 'Optimism' else return_asset_price('ARB')
-            )
+        main_chain_currency_balance = await get_token_balance(main_chain_currency, rpc, wallet_address, decimals_18)
+        main_price = await return_asset_price('OP') if chain == 'Optimism' else await return_asset_price('ARB')
         main_in_usdt = round(main_chain_currency_balance * main_price, 2)
 
     native_balance, first_stablecoin_balance, second_stablecoin_balance, native_price = await asyncio.gather(
