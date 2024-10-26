@@ -6,77 +6,59 @@ from aiocache import cached
 from config import usd_parser_token
 
 
-async def get_matic_price(session) -> Any:
-    url = 'https://api.binance.com/api/v3/ticker/price?symbol=POLUSDT'
-    async with session.get(url) as responce:
-        data = await responce.json()
-        price = data['price']
-        return float(price)
+''' API АКТИВОВ '''
 
-
-async def get_eth_price(session) -> Any:
-    url = 'https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT'
-    async with session.get(url) as responce:
-        data = await responce.json()
-        price = data['price']
-        return float(price)
-
-
-async def get_op_price(session) -> Any:
-    url = 'https://api.binance.com/api/v3/ticker/price?symbol=OPUSDT'
-    async with session.get(url) as responce:
-        data = await responce.json()
-        price = data['price']
-        return float(price)
-
+class GetPrice:
+    def __init__(self,
+                 url: str,
+                 get_data: Any
+) -> None:
+        self.url = url
+        self.get_data = get_data
     
-async def get_arb_price(session) -> Any:
-    url = 'https://api.binance.com/api/v3/ticker/price?symbol=ARBUSDT'
+    @classmethod
+    def apis(cls, asset) -> Any:
+        if asset == 'USD':
+            return {
+                asset: cls(
+                    url = f'https://v6.exchangerate-api.com/v6/{usd_parser_token}/latest/{asset}',
+                    get_data = 'conversion_rates'
+                )
+            }
+        else:
+            return {
+                asset: cls(
+                    url = f'https://api.binance.com/api/v3/ticker/price?symbol={asset}USDT',
+                    get_data = 'price'
+                )
+            }
+
+
+''' ИЗВЛЕЧЕНИЕ СТОИМОСТИ ЧЕРЕЗ API '''
+
+async def get_price(session, asset: str):
+    asset_info = GetPrice.apis(asset)[asset]
+    url = asset_info.url
     async with session.get(url) as responce:
         data = await responce.json()
-        price = data['price']
+        if asset == 'USD':
+            price = data[asset_info.get_data]['RUB']
+        else:
+            price = data[asset_info.get_data]
         return float(price)
 
 
-async def get_usd_price(session) -> Any:
-    url = f'https://v6.exchangerate-api.com/v6/{usd_parser_token}/latest/USD'
-    async with session.get(url) as responce:
-        data = await responce.json()
-        price = data['conversion_rates']['RUB']
-        return price
+''' ОБРАБОТКА ИЗВЛЕЧЕННОЙ СТОИМОСТИ '''
 
-
-async def return_matic_price() -> Any:
+async def return_asset_price(asset: str):
     async with aiohttp.ClientSession() as session:
-        matic = get_matic_price(session)
-        matic_price = await asyncio.gather(matic)
-        return matic_price[0]
-
-
-async def return_eth_price() -> Any:
-    async with aiohttp.ClientSession() as session:
-        eth = get_eth_price(session)
-        eth_price = await asyncio.gather(eth)
-        return eth_price[0]
-
-    
-async def return_op_price() -> Any:
-    async with aiohttp.ClientSession() as session:
-        op = get_op_price(session)
-        op_price = await asyncio.gather(op)
-        return op_price[0]
-
-    
-async def return_arb_price() -> Any:
-    async with aiohttp.ClientSession() as session:
-        arb = get_arb_price(session)
-        arb_price = await asyncio.gather(arb)
-        return arb_price[0]
-
+        asset = get_price(session, asset)
+        asset_price = await asyncio.gather(asset)
+        return asset_price[0]
 
 @cached(ttl=14400)
 async def return_usd_price() -> Any:
     async with aiohttp.ClientSession() as session:
-        usd = get_usd_price(session) 
-        usd_price = await asyncio.gather(usd)
-        return usd_price[0]
+        price = await get_price(session, 'USD')
+        return price
+        

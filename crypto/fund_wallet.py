@@ -10,7 +10,7 @@ from bot.main_bot import id_generator, save_data, save_payments, save_total, use
 from bot.bot_buttons import successful_wallet_fund, try_again_crypto_amount_keyboard, confirm_fund_wallet, back_to_chain_keyboard
 
 from .models import Networks
-from .price_parser import return_eth_price, return_matic_price, return_usd_price
+from .price_parser import return_usd_price, return_asset_price
 from .main_crypto import (pending_chain_fund, pending_crypto_fund_amount, pending_fund_info, 
                           pending_rub_amount, ok_to_fund, pending_fund_trx_id, get_time)
 
@@ -27,10 +27,11 @@ async def fund(message: Message, state: FSMContext):
     balance = user_data['Balance']
     chain = pending_chain_fund[user_id]
     native = Networks.networks[chain].coin_symbol
-    
+
     usd_price = await return_usd_price()
-    currency_price = round(((await return_matic_price() * usd_price if chain == 'Polygon' 
-                      else await return_eth_price() * usd_price) * 1.05), 2)
+
+    currency_price = round(((await return_asset_price('POL') * usd_price if chain == 'Polygon' 
+                      else await return_asset_price('ETH') * usd_price) * 1.05), 2)
         
     try:
         amount = float(user_amount)

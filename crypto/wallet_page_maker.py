@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery
 
 from .models import DefaultABIs, Networks, contracts
 from .get_balance_func import get_token_balance, get_native_balance
-from .price_parser import return_arb_price, return_eth_price, return_matic_price, return_op_price
+from .price_parser import return_asset_price
 
 
 abi = DefaultABIs.Token
@@ -34,15 +34,17 @@ async def get_balance_by_chain(call: CallbackQuery, chain, chain_currency, chain
 
     if chain_checker:
         main_chain_currency = contracts[chain_currency]
-        main_chain_currency_balance = await get_token_balance(main_chain_currency, rpc, wallet_address, decimals_18)
-        main_price = await return_op_price() if chain == 'Optimism' else await return_arb_price()
+        main_chain_currency_balance, main_price = await asyncio.gather(
+            get_token_balance(main_chain_currency, rpc, wallet_address, decimals_18),
+            return_asset_price('OP') if chain == 'Optimism' else return_asset_price('ARB')
+            )
         main_in_usdt = round(main_chain_currency_balance * main_price, 2)
 
     native_balance, first_stablecoin_balance, second_stablecoin_balance, native_price = await asyncio.gather(
         get_native_balance(rpc, wallet_address, decimals_18),
         get_token_balance(first_stablecoin, rpc, wallet_address, stable1_decimals),
         get_token_balance(second_stablecoin, rpc, wallet_address, stable2_decimals),
-        return_matic_price() if native_currency == 'POL' else return_eth_price()
+        return_asset_price('POL') if native_currency == 'POL' else return_asset_price('ETH')
     )
 
     try:

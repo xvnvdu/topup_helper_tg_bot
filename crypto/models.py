@@ -3,7 +3,7 @@ from web3 import Web3
 from datetime import datetime
 
 from logger import logger
-from .price_parser import return_matic_price, return_eth_price, return_arb_price, return_op_price
+from .price_parser import get_price
 
 
 ''' АДРЕСА КОНТРАКТОВ ERC20 '''
@@ -201,7 +201,7 @@ class Currencies:
                     'POL': Currency(
                             decimals = 10 ** 18,
                             contract = None,
-                            return_price = return_matic_price
+                            return_price = get_price
                         ),
                     'USDT': Currency(
                             decimals = 10 ** 6,
@@ -220,12 +220,12 @@ class Currencies:
                     'ETH': Currency(
                             decimals = 10 ** 18,
                             contract = None,
-                            return_price = return_eth_price
+                            return_price = get_price
                         ),
                     'OP': Currency(
                             decimals = 10 ** 18,
                             contract = contracts['op_op'],
-                            return_price = return_op_price
+                            return_price = get_price
                         ),
                     'USDT': Currency(
                             decimals = 10 ** 6,
@@ -244,12 +244,12 @@ class Currencies:
                     'ETH': Currency(
                             decimals = 10 ** 18,
                             contract = None,
-                            return_price = return_eth_price
+                            return_price = get_price
                         ),
                     'ARB': Currency(
                             decimals = 10 ** 18,
                             contract = contracts['arb_arb'],
-                            return_price = return_arb_price
+                            return_price = get_price
                         ),
                     'USDT': Currency(
                             decimals = 10 ** 6,
@@ -268,7 +268,7 @@ class Currencies:
                     'ETH': Currency(
                             decimals = 10 ** 18,
                             contract = None,
-                            return_price = return_eth_price
+                            return_price = get_price
                         ),
                     'USDC': Currency(
                             decimals = 10 ** 6,
