@@ -1,0 +1,10 @@
+todo
+.venv
+database
+__pycache__
+
+test.py
+test2.py
+config.py
+
+bot.log
