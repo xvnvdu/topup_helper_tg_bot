@@ -1,0 +1,11 @@
+.venv
+.git
+.gitignore
+
+todo
+LICENSE
+__pycache__
+
+test.py
+test2.py
+README.md

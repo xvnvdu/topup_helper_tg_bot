@@ -67,8 +67,7 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
         
     elif call.data == 'message_to_support':
         logger.info(f'Пользователь {user_id} собирается отправить сообщение в поддержку.')
-        await call.message.edit_text('📢 <b>Опишите вашу проблему ниже.</b>\n'
-                                 '<i>Вы также можете прикрепить фото к своему сообщению.</i>', 
+        await call.message.edit_text('📢 <b>Опишите вашу проблему ниже.</b>', 
                                  parse_mode='HTML', reply_markup=back_to_support_keyboard)
         await state.set_state(Support.message_to_support)
         
