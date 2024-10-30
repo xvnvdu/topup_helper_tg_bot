@@ -12,7 +12,7 @@ from crypto.withdraw_wallet import address_input, buttons_withdraw_handler, with
 from crypto.main_crypto import create_new_wallet, CryptoPayments, pending_chain_fund, ok_to_fund, ok_to_withdraw
 
 from .callbacks import main_callbacks
-from .payments import rub_custom, stars_custom
+from .payments import stars_custom
 from .support.admin_side import answer_message, send_answer
 from .send_to_user import amount_input, id_input, message_input
 from .support.user_side import message_to_support, continue_application, send_application
