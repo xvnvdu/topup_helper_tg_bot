@@ -30,6 +30,11 @@ pending_currency_to_withdraw = {}
 pending_crypto_withdraw_amount = {}
 
 
+''' ВРЕМЕННЫЕ ХРАНИЛИЩА ДАННЫХ ПРИ ВЫВОДЕ '''
+
+
+
+
 ''' ПОЛУЧЕНИЕ ВРЕМЕНИ '''
 
 async def get_time() -> Any:
@@ -44,7 +49,7 @@ class CryptoPayments(StatesGroup):
     fund_wallet = State()
     amount_to_withdraw = State()
     address_withdraw_to = State()
-    swap = State()
+    swap_amount = State()
     bridge = State()
 
 

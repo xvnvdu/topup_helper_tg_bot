@@ -1,7 +1,6 @@
 from web3 import Web3
 from aiogram.types import Message
 from aiogram.types import CallbackQuery
-from decimal import Decimal, ROUND_DOWN
 from aiogram.fsm.context import FSMContext
 
 from logger import logger
@@ -10,7 +9,7 @@ from bot.bot_buttons import (crypto_amount_to_withdraw, successful_wallet_withdr
                              try_again_address_input_keyboard, confirm_withdrawal)
 
 from .models import Networks, Currencies, DefaultABIs
-from .get_balance_func import get_native_balance, get_token_balance
+from .amount_handler import choose_amount
 from .main_crypto import (CryptoPayments, pending_crypto_withdraw_amount, pending_chain_withdraw, pending_withdrawal_trx, 
                           pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, pending_user_balance_in_usd, pending_withdraw_trx_id, get_time)
 
@@ -27,39 +26,7 @@ async def withdraw_choice(call: CallbackQuery):
 
 	logger.info(f'Пользователь {user_id} выбирает сумму для вывода. Сеть - {chain} | Монета - {currency}')
 
-	rpc_url = Networks.networks[chain].rpc
-	decimals = Currencies.currencies[chain][currency].decimals
-	contract = Currencies.currencies[chain][currency].contract
-	coin_price = Currencies.currencies[chain][currency].return_price
- 
-	pending_currency_to_withdraw[user_id] = currency
-	pending_chain_withdraw[user_id] = chain
-	ok_to_withdraw[user_id] = False
- 
-	if contract is None:
-		balance = await get_native_balance(rpc_url, wallet_address, decimals)
-		digits = '0.000000001'
-	else:
-		balance = await get_token_balance(contract, rpc_url, wallet_address, decimals)
-		if coin_price is not None:
-			digits = '0.0001'
-		else:
-			digits = '0.001'
-
-	balance = Decimal(balance).quantize(Decimal(digits), rounding=ROUND_DOWN)
-	pending_user_balance[user_id] = float(f'{balance}'.rstrip('0').rstrip('.'))
-	text = (f'<strong>💸 Мои активы</strong> <i>{chain} — {currency}</i>: '
-         f'<code>{f"{balance}".rstrip("0").rstrip(".")} {currency}</code>')
-
-	if coin_price is not None:
-		coin_price = await coin_price(currency)
-		usd_value = round(float(balance) * coin_price, 2)
-		pending_user_balance_in_usd[user_id] = usd_value
-		text += f' <i>({usd_value}$)</i>'
-	else:
-		pending_user_balance_in_usd[user_id] = balance
-
-	text += f'\n\n<i>Выберите сумму для вывода или введите ее вручную:</i>'
+	text = await choose_amount(user_id, chain, currency, wallet_address, 'вывода')
 
 	await call.message.edit_text(text=text, parse_mode='HTML', reply_markup=crypto_amount_to_withdraw(chain, currency))
 
@@ -378,10 +345,9 @@ async def buttons_withdraw_handler(call: CallbackQuery, state: FSMContext):
 	amount_in_usd = usd_balance * percent / 100
 
 	if amount_in_usd < 0.01:
-		logger.warning(f'Пользователь {user_id} попытался вывести менее 0.01$: {amount_in_usd}.')
-		await call.message.edit_text('<strong>⚠️ Слишком маленькое значение.</strong>\n'
-				'<i>Сумма для вывода должна быть эквивалентна не менее 0.01$</i>', 
-				parse_mode='HTML', reply_markup=try_again_withdraw_amount(chain, currency))
+		await call.message.edit_text(f'<strong>⚠️ Слишком маленькое значение.</strong>\n'
+				f'<i>Сумма для вывода должна быть эквивалентна не менее 0.01$</i>', 
+				parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
 		await state.clear()
 		return
 
