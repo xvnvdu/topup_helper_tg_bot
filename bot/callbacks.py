@@ -6,6 +6,7 @@ from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from logger import logger
+from crypto.swap import try_to_swap
 from crypto.fund_wallet import try_to_fund
 from crypto.main_crypto import CryptoPayments
 from crypto.withdraw_wallet import try_another_address, try_to_withdraw
@@ -201,6 +202,10 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
         await call.message.edit_text('🕓 <strong>Ожидание...</strong>', parse_mode='HTML')
         await try_to_withdraw(call)
         
+    elif 'confirmed_swap_id' in call.data:
+        await call.message.edit_text('🕓 <strong>Ожидание...</strong>', parse_mode='HTML')
+        await try_to_swap(call)
+    
     elif call.data == 'back':
         await call.message.edit_text('<strong>Выберите нужное действие:</strong>',
                                      parse_mode='HTML', reply_markup=menu_keyboard)

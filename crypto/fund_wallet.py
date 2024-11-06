@@ -12,7 +12,7 @@ from bot.bot_buttons import successful_wallet_fund, try_again_crypto_amount_keyb
 from .models import Networks
 from .price_parser import return_usd_price, return_asset_price
 from .main_crypto import (pending_chain_fund, pending_crypto_fund_amount, pending_fund_info, 
-                          pending_rub_amount, ok_to_fund, pending_fund_trx_id, get_time)
+                          pending_rub_amount, ok_to_fund, pending_trx_id, get_time)
 
 
 ''' ВВОД СУММЫ ПОПОЛНЕНИЯ КРИПТОКОШЕЛЬКА '''
@@ -52,7 +52,7 @@ async def fund(message: Message, state: FSMContext):
             pending_crypto_fund_amount[user_id] = user_recieve
             pending_rub_amount[user_id] = amount
             trx_id = await id_generator()
-            pending_fund_trx_id[user_id] = trx_id
+            pending_trx_id[user_id] = trx_id
             
             ok_to_fund[user_id] = True
             
@@ -99,7 +99,7 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
         pending_fund_info[user_id] = (f' Пополнение <a href="{exp_link}/tx/{trx_hash}">{chain}</a> '
                                         f'— <code>{amount_crypto} {native}</code>')
         trx_info = pending_fund_info[user_id]
-        trx_id = pending_fund_trx_id[user_id]
+        trx_id = pending_trx_id[user_id]
         total_values['Total_transactions_count'] += 1
         total_values['Total_crypto_topups_count'] += 1
         total_values['Total_crypto_topups_volume_rub'] += amount_rub
@@ -149,7 +149,7 @@ async def try_to_fund(call: CallbackQuery):
     user_id = call.from_user.id
     
     if ok_to_fund[user_id]:
-        if f'{call.data}'.split('_')[3] == pending_fund_trx_id[user_id]:
+        if f'{call.data}'.split('_')[3] == pending_trx_id[user_id]:
             await wallet_funding_confirmed(call)
         else:
             await wallet_funding_declined(call)

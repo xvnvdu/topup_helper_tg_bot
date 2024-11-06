@@ -1,10 +1,9 @@
-from aiogram.types import CallbackQuery
 from decimal import Decimal, ROUND_DOWN
 
 from .models import Networks, Currencies
 from .get_balance_func import get_native_balance, get_token_balance
-from .main_crypto import (pending_chain_withdraw, pending_currency_to_withdraw, 
-                          pending_user_balance, ok_to_withdraw, pending_user_balance_in_usd)
+from .main_crypto import (pending_chain_withdraw, pending_currency_to_withdraw, pending_user_balance,
+                          pending_user_balance_in_usd, pending_currency_to_swap, pending_chain_swap)
 
 
 async def choose_amount(user_id: int, chain: str, currency: str, wallet_address: str, action_type: str):
@@ -13,9 +12,12 @@ async def choose_amount(user_id: int, chain: str, currency: str, wallet_address:
 	contract = Currencies.currencies[chain][currency].contract
 	coin_price = Currencies.currencies[chain][currency].return_price
 
-	pending_currency_to_withdraw[user_id] = currency
-	pending_chain_withdraw[user_id] = chain
-	ok_to_withdraw[user_id] = False
+	if action_type == 'withdraw':
+		pending_currency_to_withdraw[user_id] = currency
+		pending_chain_withdraw[user_id] = chain
+	elif action_type == 'swap':
+		pending_currency_to_swap[user_id] = currency
+		pending_chain_swap[user_id] = chain
 
 	if contract is None:
 		balance = await get_native_balance(rpc_url, wallet_address, decimals)
@@ -40,7 +42,13 @@ async def choose_amount(user_id: int, chain: str, currency: str, wallet_address:
 	else:
 		pending_user_balance_in_usd[user_id] = balance
 
-	text += f'\n\n<i>Выберите сумму для {action_type} или введите ее вручную:</i>'
+	action = None
+	if action_type == 'withdraw':
+		action = 'вывода'
+	elif action_type == 'swap':
+		action = 'свапа'
+
+	text += f'\n\n<i>Выберите сумму для {action} или введите ее вручную:</i>'
  
 	return text
 

@@ -8,7 +8,7 @@ from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, PreCheck
 
 from crypto.fund_wallet import fund
 from crypto.wallet_page_maker import main_page
-from crypto.swap import swap_choice, swap_second_choice, amount_to_swap, confirm_swap
+from crypto.swap import swap_choice, swap_second_choice, amount_to_swap, choose_amount_to_swap, input_swap_amount
 from crypto.withdraw_wallet import address_input, buttons_withdraw_handler, withdraw_choice, amount_to_withdraw
 from crypto.main_crypto import create_new_wallet, CryptoPayments, pending_chain_fund, ok_to_fund, ok_to_withdraw
 
@@ -375,12 +375,14 @@ async def callback_swap_crypto(call: CallbackQuery, state: FSMContext):
 
 
 @router.callback_query(lambda call: 'percent_swap' in call.data)
-async def callback_currency_swap(call: CallbackQuery):
-    await confirm_swap(call)
+async def callback_currency_swap(call: CallbackQuery, state: FSMContext):
+    await choose_amount_to_swap(call)
+    await state.clear()
 
 
 @router.message(CryptoPayments.swap_amount)
 async def swap_handler(message: Message, state: FSMContext):
+    await input_swap_amount(message, state)
     await state.clear()
 
 

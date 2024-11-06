@@ -11,7 +11,7 @@ from bot.bot_buttons import (crypto_amount_to_withdraw, successful_wallet_withdr
 from .models import Networks, Currencies, DefaultABIs
 from .amount_handler import choose_amount
 from .main_crypto import (CryptoPayments, pending_crypto_withdraw_amount, pending_chain_withdraw, pending_withdrawal_trx, 
-                          pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, pending_user_balance_in_usd, pending_withdraw_trx_id, get_time)
+                          pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, pending_user_balance_in_usd, pending_trx_id, get_time)
 
 
 ''' ВЫБОР МОНЕТЫ ДЛЯ ВЫВОДА '''
@@ -20,13 +20,15 @@ async def withdraw_choice(call: CallbackQuery):
 	user_id = call.from_user.id
 	user_data = users_data_dict[user_id]
  
+	ok_to_withdraw[user_id] = False
+ 
 	chain = str(call.data).split('_')[1]
 	currency = str(call.data).split('_')[2]
 	wallet_address = user_data['Wallet_address']
 
 	logger.info(f'Пользователь {user_id} выбирает сумму для вывода. Сеть - {chain} | Монета - {currency}')
 
-	text = await choose_amount(user_id, chain, currency, wallet_address, 'вывода')
+	text = await choose_amount(user_id, chain, currency, wallet_address, 'withdraw')
 
 	await call.message.edit_text(text=text, parse_mode='HTML', reply_markup=crypto_amount_to_withdraw(chain, currency))
 
@@ -201,7 +203,7 @@ async def address_input(message: Message, state: FSMContext):
 		trx_fee = web3.from_wei(gas_price_wei * estimated_gas, "ether")
 	
 		trx_id = await id_generator()
-		pending_withdraw_trx_id[user_id] = trx_id
+		pending_trx_id[user_id] = trx_id
   
 		trx_fee_usd = float(trx_fee) * await return_usd_fee(native_currency)
 
@@ -265,7 +267,7 @@ async def withdrawal_confirmed(call: CallbackQuery):
                                     f'— <code>{amount_crypto} {coin}</code>')
 
 		trx_info = pending_withdraw_info[user_id]
-		trx_id = pending_withdraw_trx_id[user_id]
+		trx_id = pending_trx_id[user_id]
 		total_values['Total_transactions_count'] += 1
 		total_values['Total_withdrawals_count'] += 1
 		total_values['Total_withdrawals_volume_usd'] += amount_usd
@@ -376,7 +378,7 @@ async def try_to_withdraw(call: CallbackQuery):
     user_id = call.from_user.id
     
     if ok_to_withdraw[user_id]:
-        if f'{call.data}'.split('_')[3] == pending_withdraw_trx_id[user_id]:
+        if f'{call.data}'.split('_')[3] == pending_trx_id[user_id]:
             await withdrawal_confirmed(call)
         else:
             await withdrawal_declined(call)

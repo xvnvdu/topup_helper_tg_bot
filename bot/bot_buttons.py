@@ -304,8 +304,9 @@ def swap_second_choice_keyboard(chain: str, currency: str):
     
     for cur in Currencies.currencies[chain]:
         if cur != currency:
-            swap_buttons_list.append(InlineKeyboardButton(text=f'{cur}', 
-                                                          callback_data=f'proceed_swap_{chain}_{currency}_{cur}'))
+            swap_buttons_list.append(
+                InlineKeyboardButton(text=f'{cur}', callback_data=f'proceed_swap_{chain}_{currency}_{cur}')
+            )
     
     if (len(Currencies.currencies[chain]) - 1) % 2 != 0:
         swap_buttons = []
@@ -335,5 +336,20 @@ def crypto_amount_swap(chain: str, cur1: str, cur2: str):
             [InlineKeyboardButton(text='75%', callback_data=f'75_percent_swap_{chain}_{cur1}_{cur2}'),
              InlineKeyboardButton(text='100%', callback_data=f'100_percent_swap_{chain}_{cur1}_{cur2}')],
             [InlineKeyboardButton(text='← Назад', callback_data=f'swap_{chain}_{cur1}')]
+        ]
+    )
+    
+def change_swap_amount(chain: str, cur1: str, cur2: str):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='✏️ Изменить сумму свапа', callback_data=f'proceed_swap_{chain}_{cur1}_{cur2}')]
+        ]
+    )
+    
+def confirm_swap_keyboard(trx_id: str, chain: str, cur1: str, cur2: str):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='❌ Нет', callback_data=f'proceed_swap_{chain}_{cur1}_{cur2}'),
+            InlineKeyboardButton(text='✅ Да', callback_data=f'confirmed_swap_id_{trx_id}')]
         ]
     )
