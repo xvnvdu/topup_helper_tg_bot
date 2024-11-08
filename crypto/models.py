@@ -1,5 +1,6 @@
 import requests
 from web3 import Web3
+from uniswap import Uniswap
 
 from logger import logger
 from .price_parser import return_asset_price

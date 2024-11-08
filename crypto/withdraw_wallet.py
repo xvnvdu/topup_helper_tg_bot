@@ -304,9 +304,9 @@ async def withdrawal_confirmed(call: CallbackQuery):
 										'<i>Повторите попытку позже.</i></strong>', parse_mode='HTML')
 
 
-'''ИНИЦИАЦИЯ ВЫВОДА '''
+''' ИНИЦИАЦИЯ ВЫВОДА '''
 
-async def withdraw_crypto(call: CallbackQuery, chain):
+async def withdraw_crypto(call: CallbackQuery, chain: str):
 	user_id = call.from_user.id
 	user_data = users_data_dict[user_id]
 

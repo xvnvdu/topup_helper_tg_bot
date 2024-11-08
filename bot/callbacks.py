@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from logger import logger
-from crypto.swap import try_to_swap
+from crypto.swap.main_swap import try_to_swap
 from crypto.fund_wallet import try_to_fund
 from crypto.main_crypto import CryptoPayments
 from crypto.withdraw_wallet import try_another_address, try_to_withdraw
