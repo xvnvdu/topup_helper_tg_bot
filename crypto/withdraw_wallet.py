@@ -153,6 +153,8 @@ async def address_input(message: Message, state: FSMContext):
 	max_priority_fee = web3.eth.max_priority_fee
  
 	if is_valid:
+		reciever = Web3.to_checksum_address(reciever)
+     
 		tx = {
 		'nonce': web3.eth.get_transaction_count(sender),
 		'from': sender,

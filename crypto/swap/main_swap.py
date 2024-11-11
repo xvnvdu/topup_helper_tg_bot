@@ -1,3 +1,4 @@
+from typing import Any
 import requests
 
 from aiogram.fsm.context import FSMContext
@@ -126,7 +127,7 @@ async def input_swap_amount(message: Message, state: FSMContext):
 	web3 = Web3(Web3.HTTPProvider(rpc))
 	chain_id = Networks.networks[chain].chain_id
 	native_currency = Networks.networks[chain].coin_symbol
-	user_amount_wei = int(float(user_amount) * decimals1)
+
 	
 	if contract1 is None:
 		if chain != 'Polygon':
@@ -139,11 +140,7 @@ async def input_swap_amount(message: Message, state: FSMContext):
 		else:
 			contract2 = '0x0000000000000000000000000000000000001010'
  
-	# allowance = await GetData.check_allowance(chain_id, contract1, address)
-	output_amount, gas = await GetData.get_output_amount(chain_id, contract1, contract2, user_amount_wei, decimals2)
-	gas_price = web3.from_wei(gas, 'gwei')
-	logger.info(output_amount)
-	logger.info(gas)
+ 
 	try: 
 		amount = f'{(float(user_amount)):.12f}'.rstrip('0').rstrip('.')
 		pending_crypto_swap_amount[user_id] = amount
@@ -166,7 +163,7 @@ async def input_swap_amount(message: Message, state: FSMContext):
 
 			if cur2_price is not None:
 				cur2_price = await cur2_price(cur2)
-				cur2_usd_value = round(float(output_amount) * cur2_price, 2) # ЗАМЕНИТЬ AMOUNT НА КОЛИЧЕСТВО
+				cur2_usd_value = round(float(output_amount) * cur2_price, 2)
    
 			if cur1_price is not None:
 				cur1_price = await cur1_price(cur1)
@@ -192,30 +189,43 @@ async def input_swap_amount(message: Message, state: FSMContext):
 					await state.clear()
 					return
 
+			user_amount_wei = int(float(user_amount) * decimals1)
+			return_usd_fee = Currencies.currencies[chain][native_currency].return_price
+			output_amount, gas = await GetData.get_output_amount(chain_id, contract1, contract2, user_amount_wei, decimals2)
+			params, trx_fee = await estimate_gas(contract1, contract2, user_amount, address, web3, gas, loading, user_id, chain)
+			trx_fee_usd = float(trx_fee) * await return_usd_fee(native_currency)
+			gas_price = web3.from_wei(gas, 'gwei')
+   
 			text = (f'<b>🌐 Сеть свапа:</b> <code>{chain}</code>\n'
          			f'<b>💸 Продаете:</b> <code>{user_amount} {cur1}</code>')
+   
 			if cur1_price is not None:
 				text += f' <i>({cur1_usd_value}$)</i>'
+    
 			text += (f'\n<b>💰 Покупаете:</b> <code>{output_amount} {cur2}</code>')
+   
 			if cur2_price is not None:
 				text += f' <i>({cur2_usd_value}$)</i>'
+    
 			text += (f'\n\n<b>⛽️ Цена газа: <code>{f"{gas_price:.5f}".rstrip("0").rstrip(".")} GWei</code>\n'
-					#  f'💳 Комиссия: <code>{f"{trx_fee:.9f}".rstrip("0")} {native_currency}</code></strong> '
-					#  f'<i>({f"{trx_fee_usd:.5f}".rstrip("0")}$)</i>\n\n'
-            		 f'Подтверждаете?</b>')
+					 f'💳 Комиссия: <code>{f"{trx_fee:.9f}".rstrip("0")} {native_currency}</code></b> '
+					 f'<i>(~{f"{trx_fee_usd:.5f}".rstrip("0").rstrip(".")}$)</i>\n\n'
+            		 f'<b>Подтверждаете?</b>')
 
 			await loading.edit_text(text, parse_mode='HTML', reply_markup=confirm_swap_keyboard(trx_id, chain, cur1, cur2))
    
 	except ValueError:
 		logger.warning(f'Пользователь {user_id} ввел некорректную сумму во время свапа.')
-		await loading.edit_text('<strong>⚠️ Сумма введена некорректно, попробуйте еще раз.</strong>', 
+		await loading.edit_text('<b>⚠️ Сумма введена некорректно, попробуйте еще раз.</b>', 
                              parse_mode='HTML', reply_markup=change_swap_amount(chain, cur1, cur2))
 		await state.clear()
   
 
-async def swap_confirmed(call: CallbackQuery, message: Message, user_id: int, chain: str, contract1: str, contract2: str, amount: int, web3: None):
-	user_data = users_data_dict[user_id]
-
+async def swap_confirmed(call: CallbackQuery):
+    user_id = call.from_user.id
+    user_data = users_data_dict[user_id]
+    await call.message.edit_text('Произошел свап') 
+ 
 # 	if call:
 # 		loading = await call.message.edit_text('🕓 <strong>Рассчитываю комиссию.</strong>\n'
 #                                 '<i>Это может занять некоторое время...</i>', parse_mode='HTML')
@@ -248,29 +258,44 @@ async def swap_confirmed(call: CallbackQuery, message: Message, user_id: int, ch
 	# 					'<i>Уменьшите сумму вывода или попробуйте позже.</i>', 
 	# 							parse_mode='HTML', reply_markup=None)
 	# 		logger.warning(f'У пользователя {user_id} недостаточно средств для оплаты комиссии: Сеть - {chain} | Ошибка - {e}.')
-   
-
-	await call.message.edit_text('Произошел свап')  
+ 	
+ 
   
 
-# async def estimate_gas(contract1: str, contract2: str, amount: int, address: str, ):
-#     swap = {
-# 		'src': contract1,
-# 		'dst': contract2,
-# 		'amount': amount,
-# 		'from': address,
-# 		'slippage': 1,
-# 		'disableEstimate': False, 
-#     	'allowPartialFill': False,
-# }
+async def estimate_gas(contract1: str, contract2: str, amount: int, address: str, web3: Any, gas: int, loading: Any, user_id: int, chain: str):
+    swap = {
+		'src': contract1,
+		'dst': contract2,
+		'amount': amount,
+		'from': address,
+		'origin': address,
+		'slippage': 1,
+		'disableEstimate': False, 
+    	'allowPartialFill': False,
+}
     
-#     try:
-#         estimate_gas = web3.eth.estimate_gas(swap, from_address=address)
-#         swap['gas'] = estimate_gas
-#     except Exception as e:
-#         await loading.edit_text('<strong>⚠️ Недостаточно средств для оплаты комиссии.</strong>\n'
-# 						'<i>Уменьшите сумму вывода или попробуйте позже.</i>', parse_mode='HTML', reply_markup=None)
-#         logger.warning(f'У пользователя {user_id} недостаточно средств для оплаты комиссии: Сеть - {chain} | Ошибка - {e}.')
+    try:
+        estimate_gas = web3.eth.estimate_gas(swap)
+        trx_fee = web3.from_wei(gas * estimate_gas, "ether")
+        return swap, trx_fee
+        
+    except Exception as e:
+        await loading.edit_text('<strong>⚠️ Недостаточно средств для оплаты комиссии.</strong>\n'
+						'<i>Уменьшите сумму вывода или попробуйте позже.</i>', parse_mode='HTML', reply_markup=None)
+        logger.warning(f'У пользователя {user_id} недостаточно средств для оплаты комиссии: Сеть - {chain} | Ошибка - {e}.')
+
+
+''' ПРОВЕРКА ALLOWANCE '''
+
+async def allowance_handler(chain_id: int, contract1: str, address: str, user_amount_wei: int):
+    allowance = GetData.check_allowance(chain_id, contract1, address)
+    
+    if allowance < user_amount_wei:
+        pass
+    else:
+        pass
+
+
 
 
 ''' ПРОВЕРКА НА УСТАРЕВШИЕ ТРАНЗАКЦИИ '''
