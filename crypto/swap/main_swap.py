@@ -192,7 +192,9 @@ async def input_swap_amount(message: Message, state: FSMContext):
 			user_amount_wei = int(float(user_amount) * decimals1)
 			return_usd_fee = Currencies.currencies[chain][native_currency].return_price
 			output_amount, gas = await GetData.get_output_amount(chain_id, contract1, contract2, user_amount_wei, decimals2)
-			params, trx_fee = await estimate_gas(contract1, contract2, user_amount, address, web3, gas, loading, user_id, chain)
+			swap_params, trx_fee, allowance_params = await estimate_gas(contract1, contract2, user_amount_wei, 
+                                                               address, web3, gas, loading, user_id, chain, chain_id)
+   
 			trx_fee_usd = float(trx_fee) * await return_usd_fee(native_currency)
 			gas_price = web3.from_wei(gas, 'gwei')
    
@@ -262,7 +264,7 @@ async def swap_confirmed(call: CallbackQuery):
  
   
 
-async def estimate_gas(contract1: str, contract2: str, amount: int, address: str, web3: Any, gas: int, loading: Any, user_id: int, chain: str):
+async def estimate_gas(contract1: str, contract2: str, amount: int, address: str, web3: Any, gas: int, loading: Any, user_id: int, chain: str, chain_id: int):
     swap = {
 		'src': contract1,
 		'dst': contract2,
@@ -275,11 +277,21 @@ async def estimate_gas(contract1: str, contract2: str, amount: int, address: str
 }
     
     try:
+        logger.info('заходим')
         estimate_gas = web3.eth.estimate_gas(swap)
-        trx_fee = web3.from_wei(gas * estimate_gas, "ether")
-        return swap, trx_fee
+        logger.info('подсчитали газ')
+        swap_fee = web3.from_wei(gas * estimate_gas, 'ether')
+        logger.info('получили комиссию')
+        
+        allowance_tx, tx_fee = await allowance_handler(chain_id, contract1, address, amount, web3, loading)
+        logger.info('успешно вызвали функцию')
+        total_fee = swap_fee + tx_fee
+        logger.info(f'комиссия для свапа: {swap_fee:.9f}')
+        logger.info(f'общая комиссия: {total_fee:.9f}')
+        return swap, total_fee, allowance_tx
         
     except Exception as e:
+        logger.info('сработало исключение в estimate_gas')
         await loading.edit_text('<strong>⚠️ Недостаточно средств для оплаты комиссии.</strong>\n'
 						'<i>Уменьшите сумму вывода или попробуйте позже.</i>', parse_mode='HTML', reply_markup=None)
         logger.warning(f'У пользователя {user_id} недостаточно средств для оплаты комиссии: Сеть - {chain} | Ошибка - {e}.')
@@ -287,13 +299,47 @@ async def estimate_gas(contract1: str, contract2: str, amount: int, address: str
 
 ''' ПРОВЕРКА ALLOWANCE '''
 
-async def allowance_handler(chain_id: int, contract1: str, address: str, user_amount_wei: int):
-    allowance = GetData.check_allowance(chain_id, contract1, address)
+async def allowance_handler(chain_id: int, contract1: str, address: str, user_amount_wei: int, web3: Any, loading: Any):
+    allowance = await GetData.check_allowance(chain_id, contract1, address)
+    logger.info(allowance)
+    if int(allowance) < int(user_amount_wei):
+        data, gas_price, token = await GetData.get_allowance_data(chain_id, contract1, user_amount_wei)
+        logger.info(data)
+        logger.info(gas_price)
+        logger.info(token)
+        tx = {
+            'from': address,
+			'nonce': web3.eth.get_transaction_count(address),
+			'data': data,
+			'value': 0,
+			'to': Web3.to_checksum_address(token),
+			'maxFeePerGas': gas_price,
+            'maxPriorityFeePerGas': gas_price,
+            'chainId': chain_id
+		}
+        
+        try:
+            logger.info('мы вошли сюда')
+            estimated_gas = web3.eth.estimate_gas(tx)
+            logger.info(estimated_gas)
+            logger.info('объявили переменную')
+            tx['gas'] = estimated_gas
+            logger.info(tx)
+            logger.info('присвоили ее к словарю')
+            trx_fee_wei = gas_price * estimated_gas
+            trx_fee = web3.from_wei(trx_fee_wei, 'ether')
+            logger.info(f'комиссия для allowance: {trx_fee}')
+            return tx, trx_fee
+        
+        except Exception:
+            logger.info('сработало исключение в allowance_handler')
+            await loading.edit_text('<strong>⚠️ Недостаточно средств для оплаты комиссии.</strong>\n'
+						'<i>Уменьшите сумму вывода или попробуйте позже.</i>', parse_mode='HTML', reply_markup=None)
     
-    if allowance < user_amount_wei:
-        pass
     else:
-        pass
+        tx = None
+        trx_fee = 0
+        return tx, trx_fee
 
 
 
