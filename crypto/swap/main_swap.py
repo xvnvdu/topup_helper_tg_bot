@@ -191,12 +191,12 @@ async def input_swap_amount(message: Message, state: FSMContext):
 
 			user_amount_wei = int(float(user_amount) * decimals1)
 			return_usd_fee = Currencies.currencies[chain][native_currency].return_price
-			output_amount, gas = await GetData.get_output_amount(chain_id, contract1, contract2, user_amount_wei, decimals2)
-			swap_params, trx_fee, allowance_params = await estimate_gas(contract1, contract2, user_amount_wei, 
-                                                               address, web3, gas, loading, user_id, chain, chain_id)
+			output_amount = await GetData.get_output_amount(chain_id, contract1, contract2, user_amount_wei, decimals2)
+			swap_params, trx_fee, allowance_params, gas_price_wei = await estimate_gas(contract1, contract2, user_amount_wei, 
+                                                               address, web3, loading, user_id, chain, chain_id)
    
 			trx_fee_usd = float(trx_fee) * await return_usd_fee(native_currency)
-			gas_price = web3.from_wei(gas, 'gwei')
+			gas_price = web3.from_wei(gas_price_wei, 'gwei')
    
 			text = (f'<b>🌐 Сеть свапа:</b> <code>{chain}</code>\n'
          			f'<b>💸 Продаете:</b> <code>{user_amount} {cur1}</code>')
@@ -264,7 +264,7 @@ async def swap_confirmed(call: CallbackQuery):
  
   
 
-async def estimate_gas(contract1: str, contract2: str, amount: int, address: str, web3: Any, gas: int, loading: Any, user_id: int, chain: str, chain_id: int):
+async def estimate_gas(contract1: str, contract2: str, amount: int, address: str, web3: Any, loading: Any, user_id: int, chain: str, chain_id: int):
     swap = {
 		'src': contract1,
 		'dst': contract2,
@@ -278,17 +278,18 @@ async def estimate_gas(contract1: str, contract2: str, amount: int, address: str
     
     try:
         logger.info('заходим')
-        estimate_gas = web3.eth.estimate_gas(swap)
-        logger.info('подсчитали газ')
-        swap_fee = web3.from_wei(gas * estimate_gas, 'ether')
-        logger.info('получили комиссию')
+        estimated_gas = web3.eth.estimate_gas(swap)
+        logger.info(estimated_gas)
+        gas_price_wei = web3.eth.gas_price
+        logger.info(gas_price_wei)
+        swap_fee = web3.from_wei(gas_price_wei * estimated_gas, 'ether')
         
         allowance_tx, tx_fee = await allowance_handler(chain_id, contract1, address, amount, web3, loading)
         logger.info('успешно вызвали функцию')
         total_fee = swap_fee + tx_fee
         logger.info(f'комиссия для свапа: {swap_fee:.9f}')
         logger.info(f'общая комиссия: {total_fee:.9f}')
-        return swap, total_fee, allowance_tx
+        return swap, total_fee, allowance_tx, gas_price_wei
         
     except Exception as e:
         logger.info('сработало исключение в estimate_gas')
@@ -326,7 +327,8 @@ async def allowance_handler(chain_id: int, contract1: str, address: str, user_am
             tx['gas'] = estimated_gas
             logger.info(tx)
             logger.info('присвоили ее к словарю')
-            trx_fee_wei = gas_price * estimated_gas
+            trx_fee_wei = int(gas_price) * int(estimated_gas)
+            logger.info(trx_fee_wei)
             trx_fee = web3.from_wei(trx_fee_wei, 'ether')
             logger.info(f'комиссия для allowance: {trx_fee}')
             return tx, trx_fee

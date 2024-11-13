@@ -67,8 +67,7 @@ class GetData:
         ).get_data()
         
         amount = int(json_response['dstAmount']) / decimals
-        gas = json_response['gas']
-        return amount, gas
+        return amount
 
     @staticmethod
     async def get_allowance_data(chain_id: int, contract1: str, user_amount_wei: int):
