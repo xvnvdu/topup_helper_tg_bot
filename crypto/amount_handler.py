@@ -32,7 +32,7 @@ async def choose_amount(user_id: int, chain: str, currency: str, wallet_address:
 	balance = Decimal(balance).quantize(Decimal(digits), rounding=ROUND_DOWN)
 	pending_user_balance[user_id] = float(f'{balance}'.rstrip('0').rstrip('.'))
 	text = (f'<strong>💸 Мои активы</strong> <i>{chain} — {currency}</i>: '
-			f'<code>{f"{balance}".rstrip("0").rstrip(".")} {currency}</code>')
+			f'<code>{f"{balance:.9f}".rstrip("0").rstrip(".")} {currency}</code>')
 
 	if coin_price is not None:
 		coin_price = await coin_price(currency)

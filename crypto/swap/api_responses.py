@@ -87,3 +87,20 @@ class GetData:
         token = json_response['to']
         return data, gas_price, token
     
+    @staticmethod
+    async def get_swap_data(chain_id: int, swap_params: dict):
+        time.sleep(1)
+        json_response = await GetData(
+            chain_id = chain_id,
+            link = 'swap',
+            body = '',
+            params = swap_params
+        ).get_data()
+
+        output_amount_wei = int(json_response['dstAmount'])
+        swap_contract = json_response['tx']['to']
+        data = json_response['tx']['data']
+        gas = int(json_response['tx']['gas'])
+        gas_price_wei = int(json_response['tx']['gasPrice'])
+        return output_amount_wei, swap_contract, data, gas, gas_price_wei
+    

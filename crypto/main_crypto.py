@@ -26,17 +26,24 @@ pending_currency_to_withdraw = {}
 pending_crypto_withdraw_amount = {}
 
 
-pending_trx_id = {}
-pending_user_balance = {}
-pending_user_balance_in_usd = {}
-''' ВРЕМЕННЫЕ ХРАНИЛИЩА ДАННЫХ ПРИ ВЫВОДЕ '''
+''' ВРЕМЕННЫЕ ХРАНИЛИЩА ДАННЫХ ПРИ СВАПЕ '''
 
 ok_to_swap = {}
+pending_trx_data = {}
 pending_chain_swap = {}
+pending_swap_details = {}
 pending_currency_to_swap = {}
 pending_currency_swap_to = {}
 pending_swap_amount_in_usd = {}
 pending_crypto_swap_amount = {}
+
+
+''' ОБЩИЕ ВРЕМЕННЫЕ ХРАНИЛИЩА ДАННЫХ '''
+
+pending_trx_id = {}
+pending_user_balance = {}
+pending_user_balance_in_usd = {}
+
 
 ''' ПОЛУЧЕНИЕ ВРЕМЕНИ '''
 

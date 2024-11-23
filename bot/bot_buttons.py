@@ -198,7 +198,7 @@ def confirm_fund_wallet(chain, trx_id) -> Any:
 def successful_wallet_fund(exp_link, explorer, trx_hash) -> Any:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=f'Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
+            [InlineKeyboardButton(text=f'🌐 Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
         ]
     )
 
@@ -269,7 +269,7 @@ def confirm_withdrawal(trx_id: str):
 def successful_wallet_withdrawal(exp_link: str, explorer: str, trx_hash: str):
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=f'Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
+            [InlineKeyboardButton(text=f'🌐 Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
         ]
     )
 
@@ -353,3 +353,28 @@ def confirm_swap_keyboard(trx_id: str, chain: str, cur1: str, cur2: str):
             InlineKeyboardButton(text='✅ Да', callback_data=f'confirmed_swap_id_{trx_id}')]
         ]
     )
+    
+def allowance_handler_keyboard(chain: str, cur1: str, cur2: str):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='❌ Нет', callback_data=f'proceed_swap_{chain}_{cur1}_{cur2}'),
+            InlineKeyboardButton(text='✅ Да', callback_data=f'approve_allowance')]
+        ]
+    )
+
+def successful_approve(exp_link: str, explorer: str, trx_hash: str | None, active_button: bool):
+    keyboard = [
+            [InlineKeyboardButton(text=f'🌐 Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
+        ]
+    if active_button:
+        keyboard.append([InlineKeyboardButton(text=f'🔄 Перейти к обмену', callback_data=f'go_to_swap_{explorer}_{exp_link}')])
+        
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def successful_swap(explorer: str, exp_link: str, trx_hash: str):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=f'🌐 Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
+        ]
+    )
+    

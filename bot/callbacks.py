@@ -6,10 +6,10 @@ from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from logger import logger
-from crypto.swap.main_swap import try_to_swap
 from crypto.fund_wallet import try_to_fund
 from crypto.main_crypto import CryptoPayments
 from crypto.withdraw_wallet import try_another_address, try_to_withdraw
+from crypto.swap.main_swap import try_to_swap, tokens_approved, swap_details
 from crypto.wallet_page_maker import main_page, polygon_mainnet, arbitrum_mainnet, optimism_mainnet, base_mainnet
 
 from . import payments
@@ -22,7 +22,7 @@ from .main_bot import (users_data_dict, CustomPaymentState, SendToFriend, pendin
                        pending_sending_id, pending_sending_message, pending_payments, pending_payments_info)
 from .bot_buttons import (menu_keyboard, account_keyboard, payment_keyboard, crypto_keyboard, back_to_support_keyboard, 
                          stars_keyboard, yk_payment_keyboard, zero_transactions_keyboard, skip_message_keyboard,
-                         log_buttons, back_to_account_keyboard, step_back_keyboard, confirm_sending_keyboard, chains_keyboard)
+                         log_buttons, back_to_account_keyboard, step_back_keyboard, confirm_sending_keyboard, chains_keyboard, successful_approve)
 
 
 ''' ОСНОВНЫЕ КОЛЛБЭКИ ОТ КНОПОК '''
@@ -202,6 +202,18 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
         await call.message.edit_text('🕓 <strong>Ожидание...</strong>', parse_mode='HTML')
         await try_to_withdraw(call)
         
+    elif call.data == 'approve_allowance':
+        await tokens_approved(call)
+        
+    elif call.data.startswith('go_to_swap'):
+        explorer = str(call.data).split('_')[3]
+        exp_link = str(call.data).split('_')[4]
+        await call.message.edit_text(f'✅ <strong>Подтверждение получено!</strong>\n\n'
+                                f'<strong>Хэш approve: <pre>тут нужен хэш</pre></strong>', parse_mode='HTML', 
+                                reply_markup=successful_approve(exp_link, explorer, None, False),
+                                disable_web_page_preview=True)
+        await swap_details(call, None)
+    
     elif 'confirmed_swap_id' in call.data:
         await call.message.edit_text('🕓 <strong>Ожидание...</strong>', parse_mode='HTML')
         await try_to_swap(call)

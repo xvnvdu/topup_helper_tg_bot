@@ -8,9 +8,9 @@ from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, PreCheck
 
 from crypto.fund_wallet import fund
 from crypto.wallet_page_maker import main_page
-from crypto.swap.main_swap import swap_choice, swap_second_choice, amount_to_swap, choose_amount_to_swap, input_swap_amount
 from crypto.withdraw_wallet import address_input, buttons_withdraw_handler, withdraw_choice, amount_to_withdraw
 from crypto.main_crypto import create_new_wallet, CryptoPayments, pending_chain_fund, ok_to_fund, ok_to_withdraw
+from crypto.swap.main_swap import swap_choice, swap_second_choice, amount_to_swap, choose_amount_to_swap, input_swap_amount, swap_details
 
 from .callbacks import main_callbacks
 from .payments import stars_custom
@@ -384,6 +384,11 @@ async def callback_currency_swap(call: CallbackQuery, state: FSMContext):
 async def swap_handler(message: Message, state: FSMContext):
     await input_swap_amount(message, state)
     await state.clear()
+    
+    
+# @router.message(lambda call: call.data.startswith('go_to_swap'))
+# async def swap_checkout(call: CallbackQuery):
+#     await swap_details(call, None)
 
 
 @router.callback_query(lambda call: call.data.endswith('_bridge'))

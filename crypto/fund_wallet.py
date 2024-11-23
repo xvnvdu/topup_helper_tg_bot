@@ -84,7 +84,7 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
 
     try:
         trx_hash = await send_crypto(call, chain=chain)
-    except web3.exceptions.Web3RPCError:
+    except Exception:
         connected = True
         trx_hash = False
         
@@ -206,7 +206,7 @@ async def send_crypto(call: CallbackQuery, chain) -> Any:
         
         signed = web3.eth.account.sign_transaction(tx, sender_pk)
 
-        tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hash = web3.eth.send_raw_transaction(signed.rawTransaction)
         
         hash_hex = web3.to_hex(tx_hash)
         return hash_hex
