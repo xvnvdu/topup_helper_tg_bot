@@ -46,16 +46,35 @@ async def amount_to_swap(call: CallbackQuery, chain: str, cur1: str, cur2: str):
  
 async def choose_amount_to_swap(call: CallbackQuery):
 	user_id = call.from_user.id
+	user_data = users_data_dict[user_id]
     
 	percent = int(str(call.data).split('_')[0])
 	chain = str(call.data).split('_')[3]
 	cur1 = str(call.data).split('_')[4]
 	cur2 = str(call.data).split('_')[5]
  
+	address = user_data['Wallet_address']
 	balance = pending_user_balance[user_id]
 	usd_balance = float(pending_user_balance_in_usd[user_id])
+ 
+	rpc = Networks.networks[chain].rpc
+	web3 = Web3(Web3.HTTPProvider(rpc))
+	chain_id = Networks.networks[chain].chain_id
+	native_currency = Networks.networks[chain].coin_symbol
+ 
 	cur1_price = Currencies.currencies[chain][cur1].return_price
 	cur2_price = Currencies.currencies[chain][cur2].return_price
+ 
+	decimals1 = Currencies.currencies[chain][cur1].decimals
+	decimals2 = Currencies.currencies[chain][cur2].decimals
+ 
+	contract1 = Currencies.currencies[chain][cur1].contract
+	contract2 = Currencies.currencies[chain][cur2].contract
+
+	if contract1 is None:
+		contract1 = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+	if contract2 is None:
+		contract2 = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
  
 	trx_id = await id_generator()
 	pending_trx_id[user_id] = trx_id
@@ -71,25 +90,28 @@ async def choose_amount_to_swap(call: CallbackQuery):
 				parse_mode='HTML', reply_markup=change_swap_amount(chain, cur1, cur2))
 		return
 
+	is_100_native = None
 	if cur1 == Networks.networks[chain].coin_symbol:
 		if percent == 100:
-			withdraw_in_usd = usd_balance * (1 - 1 / (usd_balance * 100))
-			user_amount = balance / usd_balance * withdraw_in_usd
+			is_100_native = True
 
+	pending_swap_details[user_id] = {
+				'contract1': contract1,
+				'contract2': contract2,
+				'decimals1': decimals1,
+				'decimals2': decimals2,
+				'cur1_price': cur1_price,
+				'cur2_price': cur2_price,
+				'native_currency': native_currency
+			}
+ 
+	user_amount_wei = int(user_amount * decimals1)
+	pending_crypto_swap_amount[user_id] = user_amount
 	logger.info(f'Пользователь {user_id} выбрал {percent}% для свапа. Обмен {cur1} на {cur2}.')
- 
-	ok_to_swap[user_id] = True
- 
-	text = (f'<b>🌐 Сеть свапа:</b> <code>{chain}</code>\n'
-         f'<b>💸 Продаете:</b> <code>{user_amount} {cur1}</code>')
-	if cur1_price is not None:
-		text += f' <i>({round(amount_in_usd, 2)}$)</i>'
-	text += (f'\n<b>💰 Покупаете:</b> <code>*неизвестно* {cur2}</code>')   # НАХОДИТЬ СТОИМОСТЬ ЧЕРЕЗ API
-	if cur2_price is not None:
-		text += f' <i>({round(amount_in_usd, 2)}$)</i>'                    # ИЗМЕНИТЬ НА СТОИМОСТЬ ВТОРОГО АКТИВА
-	text += '\n\n<b>Подтверждаете?</b>'	
- 
-	await call.message.edit_text(text, parse_mode='HTML', reply_markup=confirm_swap_keyboard(trx_id, chain, cur1, cur2))
+
+	loading = await call.message.edit_text('🕓 <strong>Проверка allowance...</strong>\n'
+                                '<i>Это может занять некоторое время...</i>', parse_mode='HTML')
+	await allowance_handler(call, None, chain_id, contract1, contract2, address, user_amount_wei, web3, loading, is_100_native)
 
  
 async def input_swap_amount(message: Message, state: FSMContext):
@@ -188,43 +210,7 @@ async def input_swap_amount(message: Message, state: FSMContext):
 				'native_currency': native_currency
 			}
 			user_amount_wei = int(float(user_amount) * decimals1)
-			await allowance_handler(None, message, chain_id, contract1, contract2, address, user_amount_wei, web3, loading)
-   
-	# 		return_usd_fee = Currencies.currencies[chain][native_currency].return_price
-	# 		output_amount = await GetData.get_output_amount(chain_id, contract1, contract2, user_amount_wei, decimals2)
-   
-
-   
-	# 		swap_params, trx_fee, allowance_params, gas_price_wei, estimated_gas = await estimate_gas(contract1, contract2, user_amount_wei, 
-    #                                                            address, web3, loading, user_id, chain, chain_id)
-
-	# 		pending_trx_data[user_id] = {
-	# 			'web3': web3,
-	# 			'swap': swap_params,
-	# 			'allowance': allowance_params
-	# 		}
-	# 		logger.info(pending_trx_data)
-   
-	# 		trx_fee_usd = float(trx_fee) * await return_usd_fee(native_currency)
-	# 		gas_price = web3.from_wei(gas_price_wei, 'gwei')
-   
-	# 		text = (f'<b>🌐 Сеть свапа:</b> <code>{chain}</code>\n'
-    #      			f'<b>💸 Продаете:</b> <code>{user_amount} {cur1}</code>')
-   
-	# 		if cur1_price is not None:
-	# 			text += f' <i>({cur1_usd_value}$)</i>'
-    
-	# 		text += (f'\n<b>💰 Покупаете:</b> <code>{output_amount} {cur2}</code>')
-   
-	# 		if cur2_price is not None:
-	# 			text += f' <i>({cur2_usd_value}$)</i>'
-    
-	# 		text += (f'\n\n<b>⛽️ Цена газа: <code>{f"{gas_price:.5f}".rstrip("0").rstrip(".")} GWei</code>\n'
-	# 				 f'💳 Комиссия: <code>{f"{trx_fee:.9f}".rstrip("0")} {native_currency}</code></b> '
-	# 				 f'<i>(~{f"{trx_fee_usd:.5f}".rstrip("0").rstrip(".")}$)</i>\n\n'
-    #         		 f'<b>Подтверждаете?</b>')
-
-	# 		await loading.edit_text(text, parse_mode='HTML', reply_markup=confirm_swap_keyboard(trx_id, chain, cur1, cur2, chain_id, estimated_gas))
+			await allowance_handler(None, message, chain_id, contract1, contract2, address, user_amount_wei, web3, loading, None)
    
 	except ValueError:
 		logger.warning(f'Пользователь {user_id} ввел некорректную сумму во время свапа.')
@@ -256,7 +242,7 @@ async def swap_confirmed(call: CallbackQuery):
         swap_hash_hex = web3.to_hex(swap_hash)
         logger.info(f'Хэш свапа: {swap_hash_hex}')
         
-        text = (f'🎉 <strong>Успешный обмен!</strong>\n\n'
+        text = (f'🎉 <strong>Обмен успешно инициирован!</strong>\n\n'
                 f'<strong>Хэш транзакции: <pre>{swap_hash_hex}</pre></strong>')
         await call.message.edit_text(text, parse_mode='HTML', reply_markup=successful_swap(explorer, exp_link, swap_hash_hex))
         
@@ -267,33 +253,34 @@ async def swap_confirmed(call: CallbackQuery):
  
   
 
-async def swap_details(call: CallbackQuery | None, message: Message | None):
-    if call is not None:
-        user_id = call.from_user.id
-        loading = await call.message.answer('🕓 <strong>Рассчитываю комиссию.</strong>\n'
-                                '<i>Это может занять некоторое время...</i>', parse_mode='HTML')
-    else:
-        user_id = message.from_user.id
-        loading = await message.answer('🕓 <strong>Рассчитываю комиссию.</strong>\n'
-                            '<i>Это может занять некоторое время...</i>', parse_mode='HTML')
-    
+async def swap_details(call: CallbackQuery | None, message: Message | None, was_approved: bool, 
+                       message_to_edit: Any, is_100_native: bool | None):
+    action = call or message
+    user_id = action.from_user.id
     user_data = users_data_dict[user_id]
-    address = user_data['Wallet_address']
+
+    text = '🕓 <strong>Рассчитываю комиссию.</strong>\n<i>Это может занять некоторое время...</i>'
     
+    method = message_to_edit.edit_text if was_approved else call.message.answer
+    loading = await method(text, parse_mode='HTML')
+    
+    address = user_data['Wallet_address']
+
+    balance = pending_user_balance[user_id]
     chain = pending_chain_swap[user_id]
     web3 = pending_trx_data[user_id]['web3']
     swap_params = pending_trx_data[user_id]['swap']['params']
-    
+
     chain_id = chain_id = Networks.networks[chain].chain_id
     trx_id = pending_trx_id[user_id]
     
     cur1 = pending_currency_to_swap[user_id]
     cur2 = pending_currency_swap_to[user_id]
     user_amount = pending_crypto_swap_amount[user_id]
-    
+
     cur1_price = pending_swap_details[user_id]['cur1_price']
     cur2_price = pending_swap_details[user_id]['cur2_price']
-    
+
     decimals2 = int(pending_swap_details[user_id]['decimals2'])
     native_currency = pending_swap_details[user_id]['native_currency']
     
@@ -301,20 +288,31 @@ async def swap_details(call: CallbackQuery | None, message: Message | None):
         output_amount_wei, swap_contract, data, gas, gas_price_wei = await GetData.get_swap_data(chain_id, swap_params)
         trx_fee = web3.from_wei(gas * gas_price_wei, 'ether')
         output_amount = output_amount_wei / decimals2
-        
+
         return_usd_fee = Currencies.currencies[chain][native_currency].return_price
         trx_fee_usd = float(trx_fee) * await return_usd_fee(native_currency)
         gas_price = web3.from_wei(gas_price_wei, 'gwei')
-        
+
+        if is_100_native:
+            user_amount = float(balance) - (float(trx_fee) * 1.05)
+
+        if cur1 == native_currency:
+            if float(user_amount) + float(trx_fee) > float(balance):
+                logger.warning(f'У пользователя {user_id} недостаточно средств для свапа: {balance} - {user_amount}.')
+                await loading.edit_text('<strong>⚠️ У вас не хватает средств для обмена.</strong>\n<i>Уменьшите сумму '
+										'или пополните баланс.</i>', parse_mode='HTML', reply_markup=change_swap_amount(chain, cur1, cur2))
+                return
+
         text = (f'<b>🌐 Сеть свапа:</b> <code>{chain}</code>\n'
 				f'<b>💸 Продаете:</b> <code>{user_amount} {cur1}</code>')
-        
+
         if cur1_price is not None:
-            cur1_usd_value = pending_swap_amount_in_usd[user_id]
+            cur1_price = await cur1_price(cur1)
+            cur1_usd_value = round(float(user_amount) * cur1_price, 2)
             text += f' <i>({cur1_usd_value}$)</i>'
-            
+
         text += (f'\n<b>💰 Покупаете:</b> <code>{output_amount} {cur2}</code>')
-        
+
         if cur2_price is not None:
             cur2_price = await cur2_price(cur2)
             cur2_usd_value = round(float(output_amount) * cur2_price, 2)
@@ -324,7 +322,7 @@ async def swap_details(call: CallbackQuery | None, message: Message | None):
 					f'💳 Комиссия: <code>{f"{trx_fee:.9f}".rstrip("0")} {native_currency}</code></b> '
 					f'<i>({f"{trx_fee_usd:.5f}".rstrip("0").rstrip(".")}$)</i>\n\n'
 					f'<b>Подтверждаете?</b>')
-        
+
         pending_trx_data[user_id]['swap']['tx'] = {
 			'from': address,
 			'to': Web3.to_checksum_address(swap_contract),
@@ -336,7 +334,7 @@ async def swap_details(call: CallbackQuery | None, message: Message | None):
 			'maxPriorityFeePerGas': int(gas_price_wei),
 			'value': 0
 		}
-        
+
         ok_to_swap[user_id] = True
         
         await loading.edit_text(text, parse_mode='HTML', reply_markup=confirm_swap_keyboard(trx_id, chain, cur1, cur2))
@@ -345,7 +343,7 @@ async def swap_details(call: CallbackQuery | None, message: Message | None):
         logger.info('сработало исключение в swap_details')
         text = ('<strong>⚠️ Недостаточно средств для оплаты комиссии.</strong>\n'
                 '<i>Пополните баланс или попробуйте позже.</i>')
-        await loading.edit_text(text, parse_mode='HTML', reply_markup=None)
+        await loading.edit_text(text, parse_mode='HTML', reply_markup=change_swap_amount(chain, cur1, cur2))
 
         logger.warning(f'У пользователя {user_id} недостаточно средств для оплаты комиссии: Сеть - {chain} | Ошибка - {e}.')
 
@@ -353,19 +351,33 @@ async def swap_details(call: CallbackQuery | None, message: Message | None):
 ''' ПРОВЕРКА ALLOWANCE '''
 
 async def allowance_handler(call: CallbackQuery | None, message: Message | None, chain_id: int, 
-                            contract1: str, contract2: str, address: str, user_amount_wei: int, web3: Any, loading: Any):
-    if call is not None:
-        user_id = call.from_user.id
-    else:
-        user_id = message.from_user.id
+                            contract1: str, contract2: str, address: str, user_amount_wei: int, 
+                            web3: Any, loading: Any, is_100_native: bool | None):
+    action = call or message 
+    user_id = action.from_user.id
         
     user_amount = pending_crypto_swap_amount[user_id]
     cur1 = pending_currency_to_swap[user_id]
     cur2 = pending_currency_swap_to[user_id]
     chain = pending_chain_swap[user_id]
 
+    pending_trx_data[user_id] = {
+				'web3': web3,
+				'swap': {
+					'tx': None,
+					'params': {
+						'src': contract1,
+						'dst': contract2,
+						'amount': user_amount_wei,
+						'from': address,
+						'origin': address,
+						'slippage': 1
+					}
+          		},
+				'allowance': None
+			}
+    
     allowance = await GetData.check_allowance(chain_id, contract1, address)
-    logger.info(allowance)
     if int(allowance) < int(user_amount_wei):
         data, gas_price_wei, token = await GetData.get_allowance_data(chain_id, contract1, user_amount_wei)
         logger.info(data)
@@ -393,22 +405,7 @@ async def allowance_handler(call: CallbackQuery | None, message: Message | None,
             logger.info(trx_fee_wei)
             trx_fee = web3.from_wei(trx_fee_wei, 'ether')
             logger.info(f'комиссия для allowance: {trx_fee}')
-            
-            pending_trx_data[user_id] = {
-				'web3': web3,
-				'swap': {
-					'tx': None,
-					'params': {
-						'src': contract1,
-						'dst': contract2,
-						'amount': user_amount_wei,
-						'from': address,
-						'origin': address,
-						'slippage': 1
-					}
-          		},
-				'allowance': allowance_params
-			}
+            pending_trx_data[user_id]['allowance'] = allowance_params
             logger.info(pending_trx_data[user_id])
             
             gas_price = web3.from_wei(int(gas_price_wei), 'gwei')
@@ -425,19 +422,19 @@ async def allowance_handler(call: CallbackQuery | None, message: Message | None,
 					f'💳 Комиссия: <code>{f"{float(trx_fee):.9f}".rstrip("0")} {native_currency}</code></b> '
 					f'<i>({f"{float(trx_fee_usd):.5f}".rstrip("0").rstrip(".")}$)</i>\n\n'
 					f'<b>Подтверждаете?</b>')
-            logger.info('четыре')
             await loading.edit_text(text, parse_mode='HTML', reply_markup=allowance_handler_keyboard(chain, cur1, cur2))                
         
         except Exception as e:
             logger.info(f'Сработало исключение в allowance_handler: {e}')
             await loading.edit_text('<strong>⚠️ Недостаточно средств для оплаты комиссии.</strong>\n'
-						'<i>Пополните баланс или попробуйте позже.</i>', parse_mode='HTML', reply_markup=None)
+						'<i>Пополните баланс или попробуйте позже.</i>', parse_mode='HTML', 
+      					reply_markup=change_swap_amount(chain, cur1, cur2))
     
     else:
         if call is not None:
-            await swap_details(call, None)
+            await swap_details(call, None, True, loading, is_100_native)
         else:
-            await swap_details(None, message)
+            await swap_details(None, message, True, loading, None)
 
 ''' ДЕЛАЕМ APPROVE '''
 
