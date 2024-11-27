@@ -1,7 +1,6 @@
 from web3 import Web3
 from aiogram.types import Message
 from aiogram.types import CallbackQuery
-from decimal import Decimal, ROUND_DOWN
 from aiogram.fsm.context import FSMContext
 
 from logger import logger
@@ -10,9 +9,9 @@ from bot.bot_buttons import (crypto_amount_to_withdraw, successful_wallet_withdr
                              try_again_address_input_keyboard, confirm_withdrawal)
 
 from .models import Networks, Currencies, DefaultABIs
-from .get_balance_func import get_native_balance, get_token_balance
+from .amount_handler import choose_amount
 from .main_crypto import (CryptoPayments, pending_crypto_withdraw_amount, pending_chain_withdraw, pending_withdrawal_trx, 
-                          pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, pending_user_balance_in_usd, pending_withdraw_trx_id, get_time)
+                          pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, pending_user_balance_in_usd, pending_trx_id, get_time)
 
 
 ''' ВЫБОР МОНЕТЫ ДЛЯ ВЫВОДА '''
@@ -21,45 +20,15 @@ async def withdraw_choice(call: CallbackQuery):
 	user_id = call.from_user.id
 	user_data = users_data_dict[user_id]
  
+	ok_to_withdraw[user_id] = False
+ 
 	chain = str(call.data).split('_')[1]
 	currency = str(call.data).split('_')[2]
 	wallet_address = user_data['Wallet_address']
 
 	logger.info(f'Пользователь {user_id} выбирает сумму для вывода. Сеть - {chain} | Монета - {currency}')
 
-	rpc_url = Networks.networks[chain].rpc
-	decimals = Currencies.currencies[chain][currency].decimals
-	contract = Currencies.currencies[chain][currency].contract
-	coin_price = Currencies.currencies[chain][currency].return_price
- 
-	pending_currency_to_withdraw[user_id] = currency
-	pending_chain_withdraw[user_id] = chain
-	ok_to_withdraw[user_id] = False
- 
-	if contract is None:
-		balance = await get_native_balance(rpc_url, wallet_address, decimals)
-		digits = '0.000000001'
-	else:
-		balance = await get_token_balance(contract, rpc_url, wallet_address, decimals)
-		if coin_price is not None:
-			digits = '0.0001'
-		else:
-			digits = '0.001'
-
-	balance = Decimal(balance).quantize(Decimal(digits), rounding=ROUND_DOWN)
-	pending_user_balance[user_id] = float(f'{balance}'.rstrip('0').rstrip('.'))
-	text = (f'<strong>💸 Мои активы</strong> <i>{chain} — {currency}</i>: '
-         f'<code>{f"{balance}".rstrip("0").rstrip(".")} {currency}</code>')
-
-	if coin_price is not None:
-		coin_price = await coin_price(currency)
-		usd_value = round(float(balance) * coin_price, 2)
-		pending_user_balance_in_usd[user_id] = usd_value
-		text += f' <i>({usd_value}$)</i>'
-	else:
-		pending_user_balance_in_usd[user_id] = balance
-
-	text += f'\n\n<i>Выберите сумму для вывода или введите ее вручную:</i>'
+	text = await choose_amount(user_id, chain, currency, wallet_address, 'withdraw')
 
 	await call.message.edit_text(text=text, parse_mode='HTML', reply_markup=crypto_amount_to_withdraw(chain, currency))
 
@@ -184,6 +153,8 @@ async def address_input(message: Message, state: FSMContext):
 	max_priority_fee = web3.eth.max_priority_fee
  
 	if is_valid:
+		reciever = Web3.to_checksum_address(reciever)
+     
 		tx = {
 		'nonce': web3.eth.get_transaction_count(sender),
 		'from': sender,
@@ -234,7 +205,7 @@ async def address_input(message: Message, state: FSMContext):
 		trx_fee = web3.from_wei(gas_price_wei * estimated_gas, "ether")
 	
 		trx_id = await id_generator()
-		pending_withdraw_trx_id[user_id] = trx_id
+		pending_trx_id[user_id] = trx_id
   
 		trx_fee_usd = float(trx_fee) * await return_usd_fee(native_currency)
 
@@ -298,7 +269,7 @@ async def withdrawal_confirmed(call: CallbackQuery):
                                     f'— <code>{amount_crypto} {coin}</code>')
 
 		trx_info = pending_withdraw_info[user_id]
-		trx_id = pending_withdraw_trx_id[user_id]
+		trx_id = pending_trx_id[user_id]
 		total_values['Total_transactions_count'] += 1
 		total_values['Total_withdrawals_count'] += 1
 		total_values['Total_withdrawals_volume_usd'] += amount_usd
@@ -308,17 +279,23 @@ async def withdrawal_confirmed(call: CallbackQuery):
 		await save_data()
 
 		if today not in user_payments:
-			user_payments[today] = {time_now: {'RUB': 0,
+			user_payments[today] = {time_now: {'RUB': None,
                                       		   'USD': amount_usd,
 									  		   'transaction_num': trx_num,
 									  		   'type': trx_info,
+											   'explorer': explorer,
+                                               'explorer_link': exp_link,
+											   'hash': trx_hash, 
 									  		   'trx_id': trx_id}}
 			await save_payments()
 		else:
-			user_payments[today][time_now] = {'RUB': 0,
+			user_payments[today][time_now] = {'RUB': None,
 											  'USD': amount_usd,
 											  'transaction_num': trx_num,
 											  'type': trx_info,
+											  'explorer': explorer,
+                                              'explorer_link': exp_link,
+											  'hash': trx_hash,
 											  'trx_id': trx_id}
 			await save_payments()
 
@@ -327,6 +304,8 @@ async def withdrawal_confirmed(call: CallbackQuery):
                                         f'<strong>Хэш: <pre>{trx_hash}</pre></strong>',
                                         parse_mode='HTML', reply_markup=successful_wallet_withdrawal(exp_link, explorer, trx_hash), 
                                         disable_web_page_preview=True)
+		await temp_delete(user_id)
+		ok_to_withdraw[user_id] = False
 		logger.info(f'Пользователь {user_id} успешно осуществил вывод средств. Хэш - {trx_hash}')
   
 	if not connected:
@@ -335,9 +314,9 @@ async def withdrawal_confirmed(call: CallbackQuery):
 										'<i>Повторите попытку позже.</i></strong>', parse_mode='HTML')
 
 
-'''ИНИЦИАЦИЯ ВЫВОДА '''
+''' ИНИЦИАЦИЯ ВЫВОДА '''
 
-async def withdraw_crypto(call: CallbackQuery, chain):
+async def withdraw_crypto(call: CallbackQuery, chain: str):
 	user_id = call.from_user.id
 	user_data = users_data_dict[user_id]
 
@@ -354,7 +333,7 @@ async def withdraw_crypto(call: CallbackQuery, chain):
   
 		signed = web3.eth.account.sign_transaction(tx, user_pk)
 
-		tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+		tx_hash = web3.eth.send_raw_transaction(signed.rawTransaction)
 
 		hash_hex = web3.to_hex(tx_hash)
 		return hash_hex
@@ -378,10 +357,9 @@ async def buttons_withdraw_handler(call: CallbackQuery, state: FSMContext):
 	amount_in_usd = usd_balance * percent / 100
 
 	if amount_in_usd < 0.01:
-		logger.warning(f'Пользователь {user_id} попытался вывести менее 0.01$: {amount_in_usd}.')
-		await call.message.edit_text('<strong>⚠️ Слишком маленькое значение.</strong>\n'
-				'<i>Сумма для вывода должна быть эквивалентна не менее 0.01$</i>', 
-				parse_mode='HTML', reply_markup=try_again_withdraw_amount(chain, currency))
+		await call.message.edit_text(f'<strong>⚠️ Слишком маленькое значение.</strong>\n'
+				f'<i>Сумма для вывода должна быть эквивалентна не менее 0.01$</i>', 
+				parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
 		await state.clear()
 		return
 
@@ -410,7 +388,7 @@ async def try_to_withdraw(call: CallbackQuery):
     user_id = call.from_user.id
     
     if ok_to_withdraw[user_id]:
-        if f'{call.data}'.split('_')[3] == pending_withdraw_trx_id[user_id]:
+        if f'{call.data}'.split('_')[3] == pending_trx_id[user_id]:
             await withdrawal_confirmed(call)
         else:
             await withdrawal_declined(call)
@@ -426,4 +404,15 @@ async def withdrawal_declined(call: CallbackQuery):
     logger.warning(f'Пользователь {user_id} воспользовался устаревшей транзакцией для вывода.')
     await  call.message.edit_text('⛔️ <strong>Данные транзакции устарели!</strong>\n'
                                           '<i>Попробуйте инициировать новую.</i>', parse_mode='HTML')
-    
+
+
+''' УДАЛЕНИЕ ВРЕМЕННЫХ ХРАНИЛИЩ '''
+
+async def temp_delete(user_id: int):
+    del (pending_withdraw_info[user_id],
+         pending_chain_withdraw[user_id], 
+         pending_withdrawal_trx[user_id], 
+         withdraw_amount_to_show[user_id], 
+         withdraw_amount_usd_value[user_id], 
+         pending_currency_to_withdraw[user_id], 
+         pending_crypto_withdraw_amount[user_id])

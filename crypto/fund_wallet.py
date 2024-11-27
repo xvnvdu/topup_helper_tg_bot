@@ -12,7 +12,7 @@ from bot.bot_buttons import successful_wallet_fund, try_again_crypto_amount_keyb
 from .models import Networks
 from .price_parser import return_usd_price, return_asset_price
 from .main_crypto import (pending_chain_fund, pending_crypto_fund_amount, pending_fund_info, 
-                          pending_rub_amount, ok_to_fund, pending_fund_trx_id, get_time)
+                          pending_rub_amount, ok_to_fund, pending_trx_id, get_time)
 
 
 ''' ВВОД СУММЫ ПОПОЛНЕНИЯ КРИПТОКОШЕЛЬКА '''
@@ -52,7 +52,7 @@ async def fund(message: Message, state: FSMContext):
             pending_crypto_fund_amount[user_id] = user_recieve
             pending_rub_amount[user_id] = amount
             trx_id = await id_generator()
-            pending_fund_trx_id[user_id] = trx_id
+            pending_trx_id[user_id] = trx_id
             
             ok_to_fund[user_id] = True
             
@@ -84,7 +84,7 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
 
     try:
         trx_hash = await send_crypto(call, chain=chain)
-    except web3.exceptions.Web3RPCError:
+    except Exception:
         connected = True
         trx_hash = False
         
@@ -99,7 +99,7 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
         pending_fund_info[user_id] = (f' Пополнение <a href="{exp_link}/tx/{trx_hash}">{chain}</a> '
                                         f'— <code>{amount_crypto} {native}</code>')
         trx_info = pending_fund_info[user_id]
-        trx_id = pending_fund_trx_id[user_id]
+        trx_id = pending_trx_id[user_id]
         total_values['Total_transactions_count'] += 1
         total_values['Total_crypto_topups_count'] += 1
         total_values['Total_crypto_topups_volume_rub'] += amount_rub
@@ -112,16 +112,22 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
         today, time_now = await get_time()
         if today not in user_payments:
             user_payments[today] = {time_now: {'RUB': amount_rub,
-                                               'USD': 0,
+                                               'USD': None,
                                                'transaction_num': trx_num,
                                                'type': trx_info,
+                                               'explorer': explorer,
+                                               'explorer_link': exp_link,
+                                               'hash': trx_hash,
                                                'trx_id': trx_id}}
             await save_payments()
         else:
             user_payments[today][time_now] = {'RUB': amount_rub,
-                                              'USD': 0,
+                                              'USD': None,
                                               'transaction_num': trx_num,
                                               'type': trx_info,
+                                              'explorer': explorer,
+                                              'explorer_link': exp_link,
+                                              'hash': trx_hash,
                                               'trx_id': trx_id}
             await save_payments()
 
@@ -137,7 +143,7 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
                                         '<i>Повторите попытку позже.</i></strong>', parse_mode='HTML')
 
     try:     
-        del pending_rub_amount[user_id], pending_chain_fund[user_id], pending_crypto_fund_amount[user_id], pending_fund_info[user_id]
+        await temp_delete(user_id)
         ok_to_fund[user_id] = False
     except KeyError:
         pass
@@ -149,7 +155,7 @@ async def try_to_fund(call: CallbackQuery):
     user_id = call.from_user.id
     
     if ok_to_fund[user_id]:
-        if f'{call.data}'.split('_')[3] == pending_fund_trx_id[user_id]:
+        if f'{call.data}'.split('_')[3] == pending_trx_id[user_id]:
             await wallet_funding_confirmed(call)
         else:
             await wallet_funding_declined(call)
@@ -206,8 +212,13 @@ async def send_crypto(call: CallbackQuery, chain) -> Any:
         
         signed = web3.eth.account.sign_transaction(tx, sender_pk)
 
-        tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hash = web3.eth.send_raw_transaction(signed.rawTransaction)
         
         hash_hex = web3.to_hex(tx_hash)
         return hash_hex
-    
+
+
+''' УДАЛЕНИЕ ВРЕМЕННЫХ ХРАНИЛИЩ '''
+
+async def temp_delete(user_id: int):
+    del pending_rub_amount[user_id], pending_chain_fund[user_id], pending_crypto_fund_amount[user_id], pending_fund_info[user_id]

@@ -10,24 +10,39 @@ ok_to_fund = {}
 pending_fund_info = {}
 pending_chain_fund = {}
 pending_rub_amount = {}
-pending_fund_trx_id = {}
 pending_crypto_fund_amount = {}
 
 
 ''' ВРЕМЕННЫЕ ХРАНИЛИЩА ДАННЫХ ПРИ ВЫВОДЕ '''
 
 ok_to_withdraw = {}
-pending_user_balance = {}
 pending_withdraw_info = {}
 pending_chain_withdraw = {}
 pending_withdrawal_trx = {}
-pending_withdraw_trx_id = {}
 withdraw_amount_to_show = {}
 withdraw_amount_usd_value = {}
-pending_user_balance_in_usd = {}
 pending_address_to_withdraw = {}
 pending_currency_to_withdraw = {}
 pending_crypto_withdraw_amount = {}
+
+
+''' ВРЕМЕННЫЕ ХРАНИЛИЩА ДАННЫХ ПРИ СВАПЕ '''
+
+ok_to_swap = {}
+pending_trx_data = {}
+pending_chain_swap = {}
+pending_swap_details = {}
+pending_currency_to_swap = {}
+pending_currency_swap_to = {}
+pending_swap_amount_in_usd = {}
+pending_crypto_swap_amount = {}
+
+
+''' ОБЩИЕ ВРЕМЕННЫЕ ХРАНИЛИЩА ДАННЫХ '''
+
+pending_trx_id = {}
+pending_user_balance = {}
+pending_user_balance_in_usd = {}
 
 
 ''' ПОЛУЧЕНИЕ ВРЕМЕНИ '''
@@ -44,7 +59,7 @@ class CryptoPayments(StatesGroup):
     fund_wallet = State()
     amount_to_withdraw = State()
     address_withdraw_to = State()
-    swap = State()
+    swap_amount = State()
     bridge = State()
 
 

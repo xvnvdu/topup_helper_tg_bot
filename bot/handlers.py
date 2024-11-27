@@ -10,6 +10,7 @@ from crypto.fund_wallet import fund
 from crypto.wallet_page_maker import main_page
 from crypto.withdraw_wallet import address_input, buttons_withdraw_handler, withdraw_choice, amount_to_withdraw
 from crypto.main_crypto import create_new_wallet, CryptoPayments, pending_chain_fund, ok_to_fund, ok_to_withdraw
+from crypto.swap.main_swap import swap_choice, swap_second_choice, amount_to_swap, choose_amount_to_swap, input_swap_amount, swap_details
 
 from .callbacks import main_callbacks
 from .payments import stars_custom
@@ -203,15 +204,23 @@ async def successful_payment(message: Message):
         today, time_now = await get_time()
         if today not in user_payment:
             user_payment[today] = {time_now: {'RUB': amount,
-                                              'USD': 0,
+                                              'USD': None,
                                               'transaction_num': trx_num,
-                                              'type': trx_type, 'trx_id': trx_id}}
+                                              'type': trx_type, 
+                                              'explorer': None,
+                                              'explorer_link': None,
+                                              'hash': None, 
+                                              'trx_id': trx_id}}
             await save_payments()
         else:
             user_payment[today][time_now] = {'RUB': amount,
-                                             'USD': 0, 
+                                             'USD': None, 
                                              'transaction_num': trx_num, 
-                                             'type': trx_type, 'trx_id': trx_id}
+                                             'type': trx_type, 
+                                             'explorer': None,
+                                             'explorer_link': None,
+                                             'hash': None, 
+                                             'trx_id': trx_id}
             await save_payments()
         
         logger.info(f'Пользователь {user_id} успешно пополнил баланс на {amount}₽.')
@@ -295,9 +304,11 @@ async def callback_fund_crypto(call: CallbackQuery, state: FSMContext):
     
     logger.info(f'Пользователь {user_id} выбирает сумму для пополнения криптокошелька.')
 
+
 @router.message(CryptoPayments.fund_wallet)
 async def fund_handler(message: Message, state: FSMContext):
     await fund(message, state)
+    
     
 @router.callback_query(lambda call: call.data.endswith('_withdraw'))
 async def callback_withdraw_crypto(call: CallbackQuery):
@@ -311,32 +322,77 @@ async def callback_withdraw_crypto(call: CallbackQuery):
     
     logger.info(f'Пользователь {user_id} выбирает монету для вывода из криптокошелька.')
 
+
 @router.callback_query(lambda call: call.data.startswith('withdraw_'))
 async def callback_currency_withdraw(call: CallbackQuery, state: FSMContext):
     await state.set_state(CryptoPayments.amount_to_withdraw)
     await withdraw_choice(call)
 
-@router.callback_query(lambda call: 'percent' in call.data)
+
+@router.callback_query(lambda call: 'percent_withdraw' in call.data)
 async def callback_currency_withdraw(call: CallbackQuery, state: FSMContext):
     await buttons_withdraw_handler(call, state)
     await state.set_state(CryptoPayments.address_withdraw_to)
+    
     
 @router.message(CryptoPayments.amount_to_withdraw)
 async def withdraw_amount(message: Message, state: FSMContext):
     await amount_to_withdraw(message, state)
 
+
 @router.message(CryptoPayments.address_withdraw_to)
 async def withdraw_handler(message: Message, state: FSMContext):
     await address_input(message, state)
+
 
 @router.callback_query(lambda call: call.data.endswith('_swap'))
 async def callback_swap_crypto(call: CallbackQuery):
     user_id = call.from_user.id
     
     chain = str(call.data).split('_')[0]
-    await call.message.edit_text('⚠️ Этот раздел находится в разработке...', reply_markup=back_to_chain_keyboard(chain))
+    await swap_choice(call, chain)
 
     logger.info(f'Пользователь {user_id} вошел в свап.')
+
+
+@router.callback_query(lambda call: call.data.startswith('swap_'))
+async def callback_swap_crypto(call: CallbackQuery):
+    user_id = call.from_user.id
+    
+    chain = str(call.data).split('_')[1]
+    currency = str(call.data).split('_')[2]
+    
+    await swap_second_choice(call, chain, currency)
+
+    logger.info(f'Пользователь {user_id} выбрал {currency} для свапа.')
+    
+    
+@router.callback_query(lambda call: call.data.startswith('proceed_swap_'))
+async def callback_swap_crypto(call: CallbackQuery, state: FSMContext):
+    user_id = call.from_user.id
+    
+    await state.set_state(CryptoPayments.swap_amount)
+    
+    chain = str(call.data).split('_')[2]
+    cur1 = str(call.data).split('_')[3]
+    cur2 = str(call.data).split('_')[4]
+    
+    await amount_to_swap(call, chain, cur1, cur2)
+
+    logger.info(f'Пользователь {user_id} выбирает сумму для свапа. Сеть - {chain} | Обмен {cur1} на {cur2}')
+
+
+@router.callback_query(lambda call: 'percent_swap' in call.data)
+async def callback_currency_swap(call: CallbackQuery, state: FSMContext):
+    await choose_amount_to_swap(call)
+    await state.clear()
+
+
+@router.message(CryptoPayments.swap_amount)
+async def swap_handler(message: Message, state: FSMContext):
+    await input_swap_amount(message, state)
+    await state.clear()
+
 
 @router.callback_query(lambda call: call.data.endswith('_bridge'))
 async def callback_bridge_crypto(call: CallbackQuery):
@@ -361,9 +417,11 @@ async def callback_handler(call: CallbackQuery, bot: Bot, state: FSMContext):
 async def amount_input_handler(message: Message, state: FSMContext):
     await amount_input(message, state)
 
+
 @router.message(SendToFriend.id_input)
 async def id_input_handler(message: Message, state: FSMContext):
     await id_input(message, state)
+
 
 @router.message(SendToFriend.message_input)
 async def message_input_handler(message: Message, state: FSMContext):

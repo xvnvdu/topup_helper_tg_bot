@@ -1,6 +1,7 @@
 from typing import Any
 from crypto.models import Currencies
 from aiogram.types import CallbackQuery
+from bot.main_bot import users_payments_dict
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
@@ -198,7 +199,7 @@ def confirm_fund_wallet(chain, trx_id) -> Any:
 def successful_wallet_fund(exp_link, explorer, trx_hash) -> Any:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=f'Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
+            [InlineKeyboardButton(text=f'🌐 Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
         ]
     )
 
@@ -210,24 +211,24 @@ def withdraw_crypto(chain) -> Any:
 
     if len(Currencies.currencies[chain]) % 2 != 0:
         withdraw_buttons = []
-        ind = 0
-        withdraw_buttons.append([withdraw_buttons_list[ind]])
+        index = 0
+        withdraw_buttons.append([withdraw_buttons_list[index]])
         for i in range(int((len(Currencies.currencies[chain]) - 1) / 2)):
-            ind += 1
-            withdraw_buttons.append([withdraw_buttons_list[ind], withdraw_buttons_list[ind+1]])
-            ind += 1
+            index += 1
+            withdraw_buttons.append([withdraw_buttons_list[index], withdraw_buttons_list[index+1]])
+            index += 1
     else:
         withdraw_buttons = []
-        ind = 0
+        index = 0
         for i in range(int((len(Currencies.currencies[chain])) / 2)):
-            withdraw_buttons.append([withdraw_buttons_list[ind], withdraw_buttons_list[ind+1]])
-            ind += 2
+            withdraw_buttons.append([withdraw_buttons_list[index], withdraw_buttons_list[index+1]])
+            index += 2
         
     withdraw_buttons.append([InlineKeyboardButton(text='← Назад', callback_data=f'{chain}')])
     
     return InlineKeyboardMarkup(inline_keyboard=withdraw_buttons)
 
-def crypto_amount_to_withdraw(chain, coin) -> Any:
+def crypto_amount_to_withdraw(chain: str, coin: str):
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text='25%', callback_data=f'25_percent_withdraw_{chain}_{coin}'),
@@ -266,9 +267,115 @@ def confirm_withdrawal(trx_id: str):
         ]
     )
 
-def successful_wallet_withdrawal(exp_link, explorer, trx_hash) -> Any:
+def successful_wallet_withdrawal(exp_link: str, explorer: str, trx_hash: str):
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=f'Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
+            [InlineKeyboardButton(text=f'🌐 Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
         ]
     )
+
+def swap_choice_keyboard(chain: str):
+    swap_buttons_list = []
+
+    for cur in Currencies.currencies[chain]:
+        swap_buttons_list.append(InlineKeyboardButton(text=f'{cur}', callback_data=f'swap_{chain}_{cur}'))
+    
+    if len(Currencies.currencies[chain]) % 2 != 0:
+        swap_buttons = []
+        index = 0
+        swap_buttons.append([swap_buttons_list[index]])
+        for i in range(int((len(Currencies.currencies[chain]) - 1) / 2)):
+            index += 1
+            swap_buttons.append([swap_buttons_list[index], swap_buttons_list[index+1]])
+            index += 1
+    else:
+        swap_buttons = []
+        index = 0
+        for i in range(int((len(Currencies.currencies[chain])) / 2)):
+            swap_buttons.append([swap_buttons_list[index], swap_buttons_list[index+1]])
+            index += 2
+    
+    swap_buttons.append([InlineKeyboardButton(text='← Назад', callback_data=f'{chain}')])
+    
+    return InlineKeyboardMarkup(inline_keyboard=swap_buttons)
+
+
+def swap_second_choice_keyboard(chain: str, currency: str):
+    swap_buttons_list = []
+    
+    for cur in Currencies.currencies[chain]:
+        if cur != currency:
+            swap_buttons_list.append(
+                InlineKeyboardButton(text=f'{cur}', callback_data=f'proceed_swap_{chain}_{currency}_{cur}')
+            )
+    
+    if (len(Currencies.currencies[chain]) - 1) % 2 != 0:
+        swap_buttons = []
+        index = 0
+        swap_buttons.append([swap_buttons_list[index]])
+        for i in range(int((len(Currencies.currencies[chain]) - 1) / 2)):
+            index += 1
+            swap_buttons.append([swap_buttons_list[index], swap_buttons_list[index+1]])
+            index += 1
+    else:
+        swap_buttons = []
+        index = 0
+        for i in range(int((len(Currencies.currencies[chain])) / 2)):
+            swap_buttons.append([swap_buttons_list[index], swap_buttons_list[index+1]])
+            index += 2
+    
+    swap_buttons.append([InlineKeyboardButton(text='← Назад', callback_data=f'{chain}_swap')])
+    
+    return InlineKeyboardMarkup(inline_keyboard=swap_buttons)
+    
+    
+def crypto_amount_swap(chain: str, cur1: str, cur2: str):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='25%', callback_data=f'25_percent_swap_{chain}_{cur1}_{cur2}'),
+             InlineKeyboardButton(text='50%', callback_data=f'50_percent_swap_{chain}_{cur1}_{cur2}')],
+            [InlineKeyboardButton(text='75%', callback_data=f'75_percent_swap_{chain}_{cur1}_{cur2}'),
+             InlineKeyboardButton(text='100%', callback_data=f'100_percent_swap_{chain}_{cur1}_{cur2}')],
+            [InlineKeyboardButton(text='← Назад', callback_data=f'swap_{chain}_{cur1}')]
+        ]
+    )
+    
+def change_swap_amount(chain: str, cur1: str, cur2: str):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='✏️ Изменить сумму свапа', callback_data=f'proceed_swap_{chain}_{cur1}_{cur2}')]
+        ]
+    )
+    
+def confirm_swap_keyboard(trx_id: str, chain: str, cur1: str, cur2: str):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='❌ Нет', callback_data=f'proceed_swap_{chain}_{cur1}_{cur2}'),
+            InlineKeyboardButton(text='✅ Да', callback_data=f'confirmed_swap_id_{trx_id}')]
+        ]
+    )
+    
+def allowance_handler_keyboard(chain: str, cur1: str, cur2: str):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='❌ Нет', callback_data=f'proceed_swap_{chain}_{cur1}_{cur2}'),
+            InlineKeyboardButton(text='✅ Да', callback_data=f'approve_allowance')]
+        ]
+    )
+
+def successful_approve(exp_link: str, explorer: str, trx_hash: str | None, active_button: bool, today: str, time_now: str):
+    keyboard = [
+            [InlineKeyboardButton(text=f'🌐 Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
+        ]
+    if active_button:
+        keyboard.append([InlineKeyboardButton(text=f'🔄 Перейти к обмену', callback_data=f'go_to_swap_{today}_{time_now}')])
+        
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def successful_swap(explorer: str, exp_link: str, trx_hash: str):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=f'🌐 Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
+        ]
+    )
+    

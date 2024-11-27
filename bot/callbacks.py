@@ -9,6 +9,7 @@ from logger import logger
 from crypto.fund_wallet import try_to_fund
 from crypto.main_crypto import CryptoPayments
 from crypto.withdraw_wallet import try_another_address, try_to_withdraw
+from crypto.swap.main_swap import try_to_swap, tokens_approved, swap_details
 from crypto.wallet_page_maker import main_page, polygon_mainnet, arbitrum_mainnet, optimism_mainnet, base_mainnet
 
 from . import payments
@@ -17,11 +18,11 @@ from .support.rules import support_rules
 from .transactions_log import sorted_payments
 from .support.admin_side import cancel_answer
 from .support.user_side import cancel_application, bot_support
-from .main_bot import (users_data_dict, CustomPaymentState, SendToFriend, pending_sending_amount, Support, 
-                       pending_sending_id, pending_sending_message, pending_payments, pending_payments_info)
+from .main_bot import (users_data_dict, users_payments_dict, CustomPaymentState, SendToFriend, pending_sending_amount, 
+                       Support, pending_sending_id, pending_sending_message, pending_payments, pending_payments_info)
 from .bot_buttons import (menu_keyboard, account_keyboard, payment_keyboard, crypto_keyboard, back_to_support_keyboard, 
                          stars_keyboard, yk_payment_keyboard, zero_transactions_keyboard, skip_message_keyboard,
-                         log_buttons, back_to_account_keyboard, step_back_keyboard, confirm_sending_keyboard, chains_keyboard)
+                         log_buttons, back_to_account_keyboard, step_back_keyboard, confirm_sending_keyboard, chains_keyboard, successful_approve)
 
 
 ''' ОСНОВНЫЕ КОЛЛБЭКИ ОТ КНОПОК '''
@@ -67,7 +68,7 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
         
     elif call.data == 'message_to_support':
         logger.info(f'Пользователь {user_id} собирается отправить сообщение в поддержку.')
-        await call.message.edit_text('📢 <b>Опишите вашу проблему ниже.</b>', 
+        await call.message.edit_text('📢 <b>Опишите вашу проблему ниже:</b>', 
                                  parse_mode='HTML', reply_markup=back_to_support_keyboard)
         await state.set_state(Support.message_to_support)
         
@@ -83,7 +84,7 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
     
     elif call.data == 'transactions':
         logger.info(f'Пользователь {user_id} вошел в лог транзакций.')
-        if users_data_dict[user_id]['Balance'] == 0:
+        if not users_payments_dict[user_id]['Transactions']:
             await call.message.edit_text('<strong>💔 Вы еще не совершили ни одной транзакции.</strong>',
                                          parse_mode='HTML', reply_markup=zero_transactions_keyboard)
         else:
@@ -201,6 +202,26 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
         await call.message.edit_text('🕓 <strong>Ожидание...</strong>', parse_mode='HTML')
         await try_to_withdraw(call)
         
+    elif call.data == 'approve_allowance':
+        await tokens_approved(call)
+        
+    elif call.data.startswith('go_to_swap'):
+        today = str(call.data).split('_')[3]
+        time_now = str(call.data).split('_')[4]
+        trx_hash = users_payments_dict[user_id]['Transactions'][today][time_now]['hash']
+        explorer = users_payments_dict[user_id]['Transactions'][today][time_now]['explorer']
+        exp_link = users_payments_dict[user_id]['Transactions'][today][time_now]['explorer_link']
+        
+        await call.message.edit_text(f'✅ <strong>Подтверждение отправлено!</strong>\n\n'
+                                f'<strong>Хэш approve: <pre>{trx_hash}</pre></strong>', parse_mode='HTML', 
+                                reply_markup=successful_approve(exp_link, explorer, None, False, today, time_now),
+                                disable_web_page_preview=True)
+        await swap_details(call, None, False, None, None)
+    
+    elif 'confirmed_swap_id' in call.data:
+        await call.message.edit_text('🕓 <strong>Ожидание...</strong>', parse_mode='HTML')
+        await try_to_swap(call)
+    
     elif call.data == 'back':
         await call.message.edit_text('<strong>Выберите нужное действие:</strong>',
                                      parse_mode='HTML', reply_markup=menu_keyboard)
