@@ -279,14 +279,14 @@ async def withdrawal_confirmed(call: CallbackQuery):
 		await save_data()
 
 		if today not in user_payments:
-			user_payments[today] = {time_now: {'RUB': 0,
+			user_payments[today] = {time_now: {'RUB': None,
                                       		   'USD': amount_usd,
 									  		   'transaction_num': trx_num,
 									  		   'type': trx_info,
 									  		   'trx_id': trx_id}}
 			await save_payments()
 		else:
-			user_payments[today][time_now] = {'RUB': 0,
+			user_payments[today][time_now] = {'RUB': None,
 											  'USD': amount_usd,
 											  'transaction_num': trx_num,
 											  'type': trx_info,

@@ -24,7 +24,7 @@ async def sorted_payments(call: CallbackQuery):
             trx_id = trx['trx_id']
             trx_type = trx['type']
             usd_amount = trx['USD']
-            price = f'{rub_amount}₽' if usd_amount == 0 else f'{usd_amount}$'
+            price = f'{rub_amount}₽' if usd_amount is None else f'{usd_amount}$'
 
             time_input = datetime.strptime(time, '%H:%M:%S')
             time_output = time_input.strftime('%H:%M')

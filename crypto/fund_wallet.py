@@ -112,14 +112,14 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
         today, time_now = await get_time()
         if today not in user_payments:
             user_payments[today] = {time_now: {'RUB': amount_rub,
-                                               'USD': 0,
+                                               'USD': None,
                                                'transaction_num': trx_num,
                                                'type': trx_info,
                                                'trx_id': trx_id}}
             await save_payments()
         else:
             user_payments[today][time_now] = {'RUB': amount_rub,
-                                              'USD': 0,
+                                              'USD': None,
                                               'transaction_num': trx_num,
                                               'type': trx_info,
                                               'trx_id': trx_id}

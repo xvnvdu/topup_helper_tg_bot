@@ -212,7 +212,7 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
                                 f'<strong>Хэш approve: <pre>тут нужен хэш</pre></strong>', parse_mode='HTML', 
                                 reply_markup=successful_approve(exp_link, explorer, None, False),
                                 disable_web_page_preview=True)
-        await swap_details(call, None, False, None)
+        await swap_details(call, None, False, None, None)
     
     elif 'confirmed_swap_id' in call.data:
         await call.message.edit_text('🕓 <strong>Ожидание...</strong>', parse_mode='HTML')

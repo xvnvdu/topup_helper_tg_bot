@@ -5,6 +5,8 @@ import time
 from config import one_inch_token
 
 
+''' КЛАСС ДЛЯ ОБРАЩЕНИЯ К API И ИЗВЛЕЧЕНИЯ ДАННЫХ '''
+
 class GetData:
     _rate_limit_lock = asyncio.Lock()
     _last_request_time = 0
@@ -102,5 +104,6 @@ class GetData:
         data = json_response['tx']['data']
         gas = int(json_response['tx']['gas'])
         gas_price_wei = int(json_response['tx']['gasPrice'])
-        return output_amount_wei, swap_contract, data, gas, gas_price_wei
+        value = int(json_response['tx']['value'])
+        return output_amount_wei, swap_contract, data, gas, gas_price_wei, value
     

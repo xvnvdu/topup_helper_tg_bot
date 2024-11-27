@@ -204,13 +204,13 @@ async def successful_payment(message: Message):
         today, time_now = await get_time()
         if today not in user_payment:
             user_payment[today] = {time_now: {'RUB': amount,
-                                              'USD': 0,
+                                              'USD': None,
                                               'transaction_num': trx_num,
                                               'type': trx_type, 'trx_id': trx_id}}
             await save_payments()
         else:
             user_payment[today][time_now] = {'RUB': amount,
-                                             'USD': 0, 
+                                             'USD': None, 
                                              'transaction_num': trx_num, 
                                              'type': trx_type, 'trx_id': trx_id}
             await save_payments()
