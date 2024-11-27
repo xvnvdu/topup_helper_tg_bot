@@ -1,6 +1,7 @@
 from typing import Any
 from crypto.models import Currencies
 from aiogram.types import CallbackQuery
+from bot.main_bot import users_payments_dict
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
@@ -362,12 +363,12 @@ def allowance_handler_keyboard(chain: str, cur1: str, cur2: str):
         ]
     )
 
-def successful_approve(exp_link: str, explorer: str, trx_hash: str | None, active_button: bool):
+def successful_approve(exp_link: str, explorer: str, trx_hash: str | None, active_button: bool, today: str, time_now: str):
     keyboard = [
             [InlineKeyboardButton(text=f'🌐 Смотреть на {explorer}', url=f'{exp_link}/tx/{trx_hash}')]
         ]
     if active_button:
-        keyboard.append([InlineKeyboardButton(text=f'🔄 Перейти к обмену', callback_data=f'go_to_swap_{explorer}_{exp_link}')])
+        keyboard.append([InlineKeyboardButton(text=f'🔄 Перейти к обмену', callback_data=f'go_to_swap_{today}_{time_now}')])
         
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 

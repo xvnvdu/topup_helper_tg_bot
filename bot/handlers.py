@@ -206,13 +206,21 @@ async def successful_payment(message: Message):
             user_payment[today] = {time_now: {'RUB': amount,
                                               'USD': None,
                                               'transaction_num': trx_num,
-                                              'type': trx_type, 'trx_id': trx_id}}
+                                              'type': trx_type, 
+                                              'explorer': None,
+                                              'explorer_link': None,
+                                              'hash': None, 
+                                              'trx_id': trx_id}}
             await save_payments()
         else:
             user_payment[today][time_now] = {'RUB': amount,
                                              'USD': None, 
                                              'transaction_num': trx_num, 
-                                             'type': trx_type, 'trx_id': trx_id}
+                                             'type': trx_type, 
+                                             'explorer': None,
+                                             'explorer_link': None,
+                                             'hash': None, 
+                                             'trx_id': trx_id}
             await save_payments()
         
         logger.info(f'Пользователь {user_id} успешно пополнил баланс на {amount}₽.')
@@ -384,11 +392,6 @@ async def callback_currency_swap(call: CallbackQuery, state: FSMContext):
 async def swap_handler(message: Message, state: FSMContext):
     await input_swap_amount(message, state)
     await state.clear()
-    
-    
-# @router.message(lambda call: call.data.startswith('go_to_swap'))
-# async def swap_checkout(call: CallbackQuery):
-#     await swap_details(call, None)
 
 
 @router.callback_query(lambda call: call.data.endswith('_bridge'))

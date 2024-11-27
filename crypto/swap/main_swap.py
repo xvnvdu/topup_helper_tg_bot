@@ -1,3 +1,4 @@
+from ast import Pass
 from typing import Any
 
 from aiogram.fsm.context import FSMContext
@@ -263,9 +264,6 @@ async def allowance_handler(call: CallbackQuery | None, message: Message | None,
     allowance = await GetData.check_allowance(chain_id, contract1, address)
     if int(allowance) < int(user_amount_wei):
         data, gas_price_wei, token = await GetData.get_allowance_data(chain_id, contract1, user_amount_wei)
-        logger.info(data)
-        logger.info(gas_price_wei)
-        logger.info(token)
         allowance_params = {
             'from': address,
 			'data': data,
@@ -277,27 +275,17 @@ async def allowance_handler(call: CallbackQuery | None, message: Message | None,
 		}
         
         try:
-            logger.info('мы вошли сюда')
             estimated_gas = web3.eth.estimate_gas(allowance_params)
-            logger.info(estimated_gas)
-            logger.info('объявили переменную')
             allowance_params['gas'] = estimated_gas
-            logger.info(allowance_params)
-            logger.info('присвоили ее к словарю')
-            trx_fee_wei = int(gas_price_wei) * int(estimated_gas)
-            logger.info(trx_fee_wei)
-            trx_fee = web3.from_wei(trx_fee_wei, 'ether')
-            logger.info(f'комиссия для allowance: {trx_fee}')
             pending_trx_data[user_id]['allowance'] = allowance_params
-            logger.info(pending_trx_data[user_id])
             
             gas_price = web3.from_wei(int(gas_price_wei), 'gwei')
-            logger.info(f'gas_price: {gas_price}')
+            trx_fee_wei = int(gas_price_wei) * int(estimated_gas)
+            trx_fee = web3.from_wei(trx_fee_wei, 'ether')
+            
             native_currency = Networks.networks[chain].coin_symbol
-            logger.info(native_currency)
             return_usd_fee = Currencies.currencies[chain][native_currency].return_price
             trx_fee_usd = float(trx_fee) * await return_usd_fee(native_currency)
-            logger.info(trx_fee_usd)
             
             text = (f'☑️ <b>Необходимо дать подтверждение контракту на взаимодействие с вашими токенами!</b>\n\n'
                     f'<i>Этой транзакцией вы позволите контракту управлять <code>{user_amount} {cur1}</code> с вашего кошелька.</i>\n\n'
@@ -331,23 +319,31 @@ async def tokens_approved(call: CallbackQuery):
     address = user_data['Wallet_address']
     user_pk = user_data['Private_key']
     
+    amount_crypto = pending_crypto_swap_amount[user_id]
     chain = pending_chain_swap[user_id]
     allowance_params = pending_trx_data[user_id]['allowance']
     web3 = pending_trx_data[user_id]['web3']
+    cur1 = pending_currency_to_swap[user_id]
+    
+    trx_id = await id_generator()
+    today, time_now = await get_time()
     
     try:
         allowance_params['nonce'] = web3.eth.get_transaction_count(address)
         signed_allowance = web3.eth.account.sign_transaction(allowance_params, user_pk)
         allowance_hash = web3.eth.send_raw_transaction(signed_allowance.rawTransaction)
         approve_hash_hex = web3.to_hex(allowance_hash)
-        logger.info(f'Хэш allowance: {approve_hash_hex}')
+        
         explorer = Networks.networks[chain].explorer
         exp_link = Networks.networks[chain].explorer_link
-        await loading.edit_text(f'✅ <strong>Подтверждение получено!</strong>\n\n'
+        
+        await save_trx(user_id, 'approve', 0, explorer, exp_link, approve_hash_hex, chain, amount_crypto, cur1, None, trx_id, today, time_now)
+        await loading.edit_text(f'✅ <strong>Подтверждение отправлено!</strong>\n\n'
                                 f'<strong>Хэш approve: <pre>{approve_hash_hex}</pre></strong>\n\n'
                                 f'<i>Теперь вы можете совершить обмен, используя кнопку ниже.</i>', parse_mode='HTML', 
-                                reply_markup=successful_approve(exp_link, explorer, approve_hash_hex, True),
+                                reply_markup=successful_approve(exp_link, explorer, approve_hash_hex, True, today, time_now),
                                 disable_web_page_preview=True)
+        logger.info(f'Пользователь {user_id} дал подтверждение контракту. Хэш - {approve_hash_hex}')
     
     except Exception as e:
         logger.info(f'Произошла ошибка при подписании approve, пользователь {user_id}: {e}')
@@ -442,7 +438,6 @@ async def swap_details(call: CallbackQuery | None, message: Message | None, was_
 		}
 
         ok_to_swap[user_id] = True
-        logger.info(pending_trx_data[user_id]['swap']['tx'])
         
         await loading.edit_text(text, parse_mode='HTML', reply_markup=confirm_swap_keyboard(trx_id, chain, cur1, cur2))
         
@@ -461,14 +456,22 @@ async def swap_confirmed(call: CallbackQuery):
     user_id = call.from_user.id
     user_data = users_data_dict[user_id]
     
+    today, time_now = await get_time()
     trx_id = str(call.data).split('_')[3]
     
-    address = user_data['Wallet_address']
     user_pk = user_data['Private_key']
     
     web3 = pending_trx_data[user_id]['web3']
     swap = pending_trx_data[user_id]['swap']['tx']
     chain = pending_chain_swap[user_id]
+    
+    amount_crypto = pending_crypto_swap_amount[user_id]
+    amount_usd = amount_crypto
+    cur1 = pending_currency_to_swap[user_id]
+    cur2 = pending_currency_swap_to[user_id]
+    
+    if user_id in pending_swap_amount_in_usd:
+        amount_usd = pending_swap_amount_in_usd[user_id]
         
     try:
         explorer = Networks.networks[chain].explorer
@@ -477,11 +480,18 @@ async def swap_confirmed(call: CallbackQuery):
         signed_swap = web3.eth.account.sign_transaction(swap, user_pk)
         swap_hash = web3.eth.send_raw_transaction(signed_swap.rawTransaction)
         swap_hash_hex = web3.to_hex(swap_hash)
-        logger.info(f'Хэш свапа: {swap_hash_hex}')
+        
+        await save_trx(user_id, 'swap', amount_usd, explorer, exp_link, swap_hash_hex, chain, amount_crypto, cur1, cur2, trx_id, today, time_now)
         
         text = (f'🎉 <strong>Обмен успешно инициирован!</strong>\n\n'
                 f'<strong>Хэш транзакции: <pre>{swap_hash_hex}</pre></strong>')
         await call.message.edit_text(text, parse_mode='HTML', reply_markup=successful_swap(explorer, exp_link, swap_hash_hex))
+        try:
+            await temp_delete(user_id)
+        except Exception:
+            pass
+        ok_to_swap[user_id] = False
+        logger.info(f'Пользователь {user_id} успешно совершил обмен. Хэш - {swap_hash_hex}')
         
     except Exception as e:
         logger.info(f'Произошла ошибка при выполнении свапа, пользователь {user_id}: {e}')
@@ -489,35 +499,47 @@ async def swap_confirmed(call: CallbackQuery):
                              parse_mode='HTML')
 
 
-# ''' ЗАПИСЬ ТРАНЗАКЦИИ В ЛОГ '''
+''' ЗАПИСЬ ТРАНЗАКЦИИ В ЛОГ '''
 
-# async def save_trx(user_id: int, trx_type: str, ) -> Any:
-#     today, time_now = await get_time()
-#     user_payments = users_payments_dict[user_id]['Transactions']
+async def save_trx(user_id: int, trx_type: str, amount_usd: float | int, explorer: str, exp_link: str, trx_hash: str, 
+                   chain: str, amount_crypto: str, cur1: str, cur2: str | None, trx_id: str, today: str, time_now: str):
+    user_payments = users_payments_dict[user_id]['Transactions']
     
-#     total_values['Total_transactions_count'] += 1
-#     trx_num = total_values['Total_transactions_count']
-#     if trx_type == 'swap':
-#         total_values['Total_swaps_count'] += 1
-#         total_values['Total_swaps_volume_usd'] += amount_usd
+    total_values['Total_transactions_count'] += 1
+    trx_num = total_values['Total_transactions_count']
     
-#     await save_total()
-#     await save_data()
+    if trx_type == 'swap':
+        total_values['Total_swaps_count'] += 1
+        total_values['Total_swaps_volume_usd'] += float(amount_usd)
+        trx_info = (f' Обмен <a href = "{exp_link}/tx/{trx_hash}">{chain}</a> '
+                    f'— <code>{cur1}/{cur2}</code>')
+    else:
+        trx_info = (f' Approve <a href = "{exp_link}/tx/{trx_hash}">{chain}</a> '
+                    f'— <code>{amount_crypto} {cur1}</code>')
     
-#     if today not in user_payments:
-#         user_payments[today] = {time_now: {'RUB': None,
-#                                       	   'USD': amount_usd,
-# 									  	   'transaction_num': trx_num,
-# 									  	   'type': trx_info,
-# 									  	   'trx_id': trx_id}}
-#         await save_payments()
-#     else:
-#         user_payments[today][time_now] = {'RUB': None,
-#                                           'USD': amount_usd,
-# 										  'transaction_num': trx_num,
-# 										  'type': trx_info,
-# 										  'trx_id': trx_id}
-#         await save_payments()
+    await save_total()
+    await save_data()
+    
+    if today not in user_payments:
+        user_payments[today] = {time_now: {'RUB': None,
+                                      	   'USD': amount_usd,
+									  	   'transaction_num': trx_num,
+									  	   'type': trx_info,
+										   'explorer': explorer,
+                                           'explorer_link': exp_link,
+										   'hash': trx_hash,
+									  	   'trx_id': trx_id}}
+        await save_payments()
+    else:
+        user_payments[today][time_now] = {'RUB': None,
+                                          'USD': amount_usd,
+										  'transaction_num': trx_num,
+										  'type': trx_info,
+            							  'explorer': explorer,
+                                          'explorer_link': exp_link,
+										  'hash': trx_hash,
+										  'trx_id': trx_id}
+        await save_payments()
 
 
 
@@ -543,4 +565,15 @@ async def swap_declined(call: CallbackQuery):
     logger.warning(f'Пользователь {user_id} воспользовался устаревшей транзакцией для свапа.')
     await  call.message.edit_text('⛔️ <strong>Данные транзакции устарели!</strong>\n'
                                           '<i>Попробуйте инициировать новую.</i>', parse_mode='HTML')
-    
+
+
+''' УДАЛЕНИЕ ВРЕМЕННЫХ ХРАНИЛИЩ '''
+
+async def temp_delete(user_id: int):
+    del (pending_trx_data[user_id],
+         pending_chain_swap[user_id], 
+         pending_swap_details[user_id], 
+         pending_currency_swap_to[user_id],
+         pending_currency_to_swap[user_id], 
+         pending_swap_amount_in_usd[user_id], 
+         pending_crypto_swap_amount[user_id]) 

@@ -283,6 +283,9 @@ async def withdrawal_confirmed(call: CallbackQuery):
                                       		   'USD': amount_usd,
 									  		   'transaction_num': trx_num,
 									  		   'type': trx_info,
+											   'explorer': explorer,
+                                               'explorer_link': exp_link,
+											   'hash': trx_hash, 
 									  		   'trx_id': trx_id}}
 			await save_payments()
 		else:
@@ -290,6 +293,9 @@ async def withdrawal_confirmed(call: CallbackQuery):
 											  'USD': amount_usd,
 											  'transaction_num': trx_num,
 											  'type': trx_info,
+											  'explorer': explorer,
+                                              'explorer_link': exp_link,
+											  'hash': trx_hash,
 											  'trx_id': trx_id}
 			await save_payments()
 
@@ -298,6 +304,8 @@ async def withdrawal_confirmed(call: CallbackQuery):
                                         f'<strong>Хэш: <pre>{trx_hash}</pre></strong>',
                                         parse_mode='HTML', reply_markup=successful_wallet_withdrawal(exp_link, explorer, trx_hash), 
                                         disable_web_page_preview=True)
+		await temp_delete(user_id)
+		ok_to_withdraw[user_id] = False
 		logger.info(f'Пользователь {user_id} успешно осуществил вывод средств. Хэш - {trx_hash}')
   
 	if not connected:
@@ -396,4 +404,15 @@ async def withdrawal_declined(call: CallbackQuery):
     logger.warning(f'Пользователь {user_id} воспользовался устаревшей транзакцией для вывода.')
     await  call.message.edit_text('⛔️ <strong>Данные транзакции устарели!</strong>\n'
                                           '<i>Попробуйте инициировать новую.</i>', parse_mode='HTML')
-    
+
+
+''' УДАЛЕНИЕ ВРЕМЕННЫХ ХРАНИЛИЩ '''
+
+async def temp_delete(user_id: int):
+    del (pending_withdraw_info[user_id],
+         pending_chain_withdraw[user_id], 
+         pending_withdrawal_trx[user_id], 
+         withdraw_amount_to_show[user_id], 
+         withdraw_amount_usd_value[user_id], 
+         pending_currency_to_withdraw[user_id], 
+         pending_crypto_withdraw_amount[user_id])

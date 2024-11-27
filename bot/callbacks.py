@@ -18,8 +18,8 @@ from .support.rules import support_rules
 from .transactions_log import sorted_payments
 from .support.admin_side import cancel_answer
 from .support.user_side import cancel_application, bot_support
-from .main_bot import (users_data_dict, CustomPaymentState, SendToFriend, pending_sending_amount, Support, 
-                       pending_sending_id, pending_sending_message, pending_payments, pending_payments_info)
+from .main_bot import (users_data_dict, users_payments_dict, CustomPaymentState, SendToFriend, pending_sending_amount, 
+                       Support, pending_sending_id, pending_sending_message, pending_payments, pending_payments_info)
 from .bot_buttons import (menu_keyboard, account_keyboard, payment_keyboard, crypto_keyboard, back_to_support_keyboard, 
                          stars_keyboard, yk_payment_keyboard, zero_transactions_keyboard, skip_message_keyboard,
                          log_buttons, back_to_account_keyboard, step_back_keyboard, confirm_sending_keyboard, chains_keyboard, successful_approve)
@@ -84,7 +84,7 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
     
     elif call.data == 'transactions':
         logger.info(f'Пользователь {user_id} вошел в лог транзакций.')
-        if users_data_dict[user_id]['Balance'] == 0:
+        if not users_payments_dict[user_id]['Transactions']:
             await call.message.edit_text('<strong>💔 Вы еще не совершили ни одной транзакции.</strong>',
                                          parse_mode='HTML', reply_markup=zero_transactions_keyboard)
         else:
@@ -206,11 +206,15 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
         await tokens_approved(call)
         
     elif call.data.startswith('go_to_swap'):
-        explorer = str(call.data).split('_')[3]
-        exp_link = str(call.data).split('_')[4]
+        today = str(call.data).split('_')[3]
+        time_now = str(call.data).split('_')[4]
+        trx_hash = users_payments_dict[user_id]['Transactions'][today][time_now]['hash']
+        explorer = users_payments_dict[user_id]['Transactions'][today][time_now]['explorer']
+        exp_link = users_payments_dict[user_id]['Transactions'][today][time_now]['explorer_link']
+        
         await call.message.edit_text(f'✅ <strong>Подтверждение отправлено!</strong>\n\n'
-                                f'<strong>Хэш approve: <pre>тут нужен хэш</pre></strong>', parse_mode='HTML', 
-                                reply_markup=successful_approve(exp_link, explorer, None, False),
+                                f'<strong>Хэш approve: <pre>{trx_hash}</pre></strong>', parse_mode='HTML', 
+                                reply_markup=successful_approve(exp_link, explorer, None, False, today, time_now),
                                 disable_web_page_preview=True)
         await swap_details(call, None, False, None, None)
     

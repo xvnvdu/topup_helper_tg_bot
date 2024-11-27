@@ -159,25 +159,41 @@ async def send_to_user(call: CallbackQuery, bot: Bot, state: FSMContext):
             sender_payments[today] = {time_now: {'RUB': amount,
                                                  'USD': None,
                                                  'transaction_num': trx_num,
-                                                 'type': sender_info, 'trx_id': trx_sender_id}}
+                                                 'type': sender_info,
+                                                 'explorer': None,
+                                                'explorer_link': None,
+                                                 'hash': None, 
+                                                 'trx_id': trx_sender_id}}
             await save_payments()
         else:
             sender_payments[today][time_now] = {'RUB': amount,
                                                 'USD': None,
                                                 'transaction_num': trx_num,
-                                                'type': sender_info, 'trx_id': trx_sender_id}
+                                                'type': sender_info, 
+                                                'explorer': None,
+                                                'explorer_link': None,
+                                                'hash': None, 
+                                                'trx_id': trx_sender_id}
             await save_payments()
         if today not in reciever_payments:
             reciever_payments[today] = {time_now: {'RUB': amount,
                                                    'USD': None,
                                                    'transaction_num': trx_num,
-                                                   'type': reciever_info, 'trx_id': trx_reciever_id}}
+                                                   'type': reciever_info, 
+                                                   'explorer': None,
+                                                   'explorer_link': None,
+                                                   'hash': None, 
+                                                   'trx_id': trx_reciever_id}}
             await save_payments()
         else:
             reciever_payments[today][time_now] = {'RUB': amount,
                                                   'USD': None,
                                                   'transaction_num': trx_num,
-                                                  'type': reciever_info, 'trx_id': trx_reciever_id}
+                                                  'type': reciever_info, 
+                                                  'explorer': None,
+                                                  'explorer_link': None,
+                                                  'hash': None, 
+                                                  'trx_id': trx_reciever_id}
             await save_payments()
 
         if pending_sending_message[user_id] is not None:

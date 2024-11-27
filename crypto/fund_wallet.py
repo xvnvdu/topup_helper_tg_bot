@@ -115,6 +115,9 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
                                                'USD': None,
                                                'transaction_num': trx_num,
                                                'type': trx_info,
+                                               'explorer': explorer,
+                                               'explorer_link': exp_link,
+                                               'hash': trx_hash,
                                                'trx_id': trx_id}}
             await save_payments()
         else:
@@ -122,6 +125,9 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
                                               'USD': None,
                                               'transaction_num': trx_num,
                                               'type': trx_info,
+                                              'explorer': explorer,
+                                              'explorer_link': exp_link,
+                                              'hash': trx_hash,
                                               'trx_id': trx_id}
             await save_payments()
 
@@ -137,7 +143,7 @@ async def wallet_funding_confirmed(call: CallbackQuery) -> Any:
                                         '<i>Повторите попытку позже.</i></strong>', parse_mode='HTML')
 
     try:     
-        del pending_rub_amount[user_id], pending_chain_fund[user_id], pending_crypto_fund_amount[user_id], pending_fund_info[user_id]
+        await temp_delete(user_id)
         ok_to_fund[user_id] = False
     except KeyError:
         pass
@@ -210,4 +216,9 @@ async def send_crypto(call: CallbackQuery, chain) -> Any:
         
         hash_hex = web3.to_hex(tx_hash)
         return hash_hex
-    
+
+
+''' УДАЛЕНИЕ ВРЕМЕННЫХ ХРАНИЛИЩ '''
+
+async def temp_delete(user_id: int):
+    del pending_rub_amount[user_id], pending_chain_fund[user_id], pending_crypto_fund_amount[user_id], pending_fund_info[user_id]
