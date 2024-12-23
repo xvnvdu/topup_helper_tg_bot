@@ -288,7 +288,8 @@ async def allowance_handler(call: CallbackQuery | None, message: Message | None,
             trx_fee_usd = float(trx_fee) * await return_usd_fee(native_currency)
             
             text = (f'☑️ <b>Необходимо дать подтверждение контракту на взаимодействие с вашими токенами!</b>\n\n'
-                    f'<i>Этой транзакцией вы позволите контракту управлять <code>{user_amount} {cur1}</code> с вашего кошелька.</i>\n\n'
+                    f'<i>Этой транзакцией вы позволите контракту управлять <code>{f"{float(user_amount):.5f}".rstrip("0").rstrip(".")}' 
+                    f' {cur1}</code> с вашего кошелька.</i>\n\n'
 					f'<b>⛽️ Цена газа: <code>{f"{float(gas_price):.5f}".rstrip("0").rstrip(".")} GWei</code>\n'
 					f'💳 Комиссия: <code>{f"{float(trx_fee):.9f}".rstrip("0")} {native_currency}</code></b> '
 					f'<i>({f"{float(trx_fee_usd):.5f}".rstrip("0").rstrip(".")}$)</i>\n\n'
@@ -407,13 +408,13 @@ async def swap_details(call: CallbackQuery | None, message: Message | None, was_
                 return
 
         text = (f'<b>🌐 Сеть свапа:</b> <code>{chain}</code>\n'
-				f'<b>💸 Продаете:</b> <code>{user_amount} {cur1}</code>')
+				f'<b>💸 Продаете:</b> <code>{f"{user_amount:.12f}".rstrip("0").rstrip(".")} {cur1}</code>')
 
         if cur1_price is not None:
             cur1_usd_value = pending_swap_amount_in_usd[user_id]
             text += f' <i>({cur1_usd_value}$)</i>'
             
-        text += (f'\n<b>💰 Покупаете:</b> <code>{output_amount} {cur2}</code>')
+        text += (f'\n<b>💰 Покупаете:</b> <code>{f"{output_amount:.12f}".rstrip("0").rstrip(".")} {cur2}</code>')
 
         if cur2_price is not None:
             cur2_price = await cur2_price(cur2)
@@ -515,7 +516,7 @@ async def save_trx(user_id: int, trx_type: str, amount_usd: float | int, explore
                     f'— <code>{cur1}/{cur2}</code>')
     else:
         trx_info = (f' Approve <a href = "{exp_link}/tx/{trx_hash}">{chain}</a> '
-                    f'— <code>{amount_crypto} {cur1}</code>')
+                    f'— <code>{f"{amount_crypto:.6f}".rstrip("0").rstrip(".")} {cur1}</code>')
     
     await save_total()
     await save_data()

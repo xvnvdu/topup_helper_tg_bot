@@ -58,8 +58,8 @@ async def fund(message: Message, state: FSMContext):
             
             logger.info(f'Пользователь {user_id} подтверждает пополнение криптокошелька на {user_recieve} {native}.')
             await message.answer(f'<strong>🌐 Пополняемая сеть: <code>{chain}</code>\n💳 Сумма пополнения: <code>{amount}₽</code>\n\n'
-                                 f'📊 Курс: <code>1 {native} = {currency_price}₽</code>\nИтого к пополнению: <code>{user_recieve} {native}</code>\n\n'
-                                 f'Подтверждаете?</strong>', parse_mode='HTML', reply_markup=confirm_fund_wallet(chain, trx_id))
+                                 f'📊 Курс: <code>1 {native} = {currency_price}₽</code>\nИтого к пополнению: <code>{f"{user_recieve:.12f}".rstrip("0").rstrip(".")} '
+                                 f'{native}</code>\n\nПодтверждаете?</strong>', parse_mode='HTML', reply_markup=confirm_fund_wallet(chain, trx_id))
     except ValueError:
         logger.warning(f'Пользователь {user_id} ввел некорректную сумму при пополнении криптокошелька.')
         await message.answer('<strong>⚠️ Сумма введена некорректно, попробуйте еще раз.</strong>', 
