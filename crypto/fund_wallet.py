@@ -48,7 +48,7 @@ async def fund(message: Message, state: FSMContext):
             await message.answer('<strong>⚠️ У вас не хватает средств для пополнения.</strong>\n<i>Уменьшите сумму '
                                  'или пополните баланс.</i>', parse_mode='HTML', reply_markup=try_again_crypto_amount_keyboard(chain))
         else:
-            user_recieve = f'{(amount / currency_price):.7f}'
+            user_recieve = amount / currency_price
             pending_crypto_fund_amount[user_id] = user_recieve
             pending_rub_amount[user_id] = amount
             trx_id = await id_generator()
@@ -58,7 +58,7 @@ async def fund(message: Message, state: FSMContext):
             
             logger.info(f'Пользователь {user_id} подтверждает пополнение криптокошелька на {user_recieve} {native}.')
             await message.answer(f'<strong>🌐 Пополняемая сеть: <code>{chain}</code>\n💳 Сумма пополнения: <code>{amount}₽</code>\n\n'
-                                 f'📊 Курс: <code>1 {native} = {currency_price}₽</code>\nИтого к пополнению: <code>{f"{user_recieve:.12f}".rstrip("0").rstrip(".")} '
+                                 f'📊 Курс: <code>1 {native} = {currency_price}₽</code>\nИтого к пополнению: <code>{f"{user_recieve:.9f}".rstrip("0").rstrip(".")} '
                                  f'{native}</code>\n\nПодтверждаете?</strong>', parse_mode='HTML', reply_markup=confirm_fund_wallet(chain, trx_id))
     except ValueError:
         logger.warning(f'Пользователь {user_id} ввел некорректную сумму при пополнении криптокошелька.')

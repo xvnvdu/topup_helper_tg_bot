@@ -120,7 +120,7 @@ async def choose_amount_to_swap(call: CallbackQuery):
 				'native_currency': native_currency
 			}
  
-	pending_crypto_swap_amount[user_id] = user_amount
+	pending_crypto_swap_amount[user_id] = f'{(float(user_amount)):.12f}'.rstrip('0').rstrip('.')
 	logger.info(f'Пользователь {user_id} выбрал {percent}% для свапа. Обмен {cur1} на {cur2}.')
 
 	loading = await call.message.edit_text('🕓 <strong>Проверка allowance...</strong>\n'
@@ -149,7 +149,6 @@ async def input_swap_amount(message: Message, state: FSMContext):
 	chain = pending_chain_swap[user_id]
 	cur1 = pending_currency_to_swap[user_id]
 	cur2 = pending_currency_swap_to[user_id]
-	pending_crypto_swap_amount[user_id] = user_amount
  
 	contract1 = Currencies.currencies[chain][cur1].contract
 	contract2 = Currencies.currencies[chain][cur2].contract
@@ -408,13 +407,13 @@ async def swap_details(call: CallbackQuery | None, message: Message | None, was_
                 return
 
         text = (f'<b>🌐 Сеть свапа:</b> <code>{chain}</code>\n'
-				f'<b>💸 Продаете:</b> <code>{f"{user_amount:.12f}".rstrip("0").rstrip(".")} {cur1}</code>')
+				f'<b>💸 Продаете:</b> <code>{user_amount} {cur1}</code>')
 
         if cur1_price is not None:
             cur1_usd_value = pending_swap_amount_in_usd[user_id]
             text += f' <i>({cur1_usd_value}$)</i>'
             
-        text += (f'\n<b>💰 Покупаете:</b> <code>{f"{output_amount:.12f}".rstrip("0").rstrip(".")} {cur2}</code>')
+        text += (f'\n<b>💰 Покупаете:</b> <code>{f"{output_amount:.7f}".rstrip("0").rstrip(".")} {cur2}</code>')
 
         if cur2_price is not None:
             cur2_price = await cur2_price(cur2)
