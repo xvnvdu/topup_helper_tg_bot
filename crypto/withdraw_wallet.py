@@ -66,7 +66,7 @@ async def amount_to_withdraw(message: Message, state: FSMContext):
 			await state.clear()
    
 		else:
-			text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{f"{amount:.12f}".rstrip("0")} {currency}</code></i>'
+			text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{amount} {currency}</code></i>'
 			if coin_price is not None:
 				coin_price = await coin_price(currency)
 				usd_value = round(float(amount) * coin_price, 2)
@@ -111,7 +111,7 @@ async def try_another_address(call: CallbackQuery):
 
 	ok_to_withdraw[user_id] = False
 
-	text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{f"{amount:.12f}".rstrip("0")} {currency}</code></i>'
+	text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{amount} {currency}</code></i>'
  
 	if user_id in withdraw_amount_usd_value:
 		usd_value = withdraw_amount_usd_value[user_id]
@@ -217,7 +217,7 @@ async def address_input(message: Message, state: FSMContext):
 		else:
 			ok_to_withdraw[user_id] = True
 			await loading.edit_text(f'<strong>🌐 Сеть перевода: <code>{chain}</code>\n'
-                        f'💸 Сумма перевода: <code>{f"{amount_to_show:.12f}".rstrip("0")} {currency}</code></strong>{add_usd_value}\n'
+                        f'💸 Сумма перевода: <code>{amount_to_show} {currency}</code></strong>{add_usd_value}\n'
                         f'<strong>📒 Получатель: <code>{reciever}</code>\n\n'
                         f'⛽️ Цена газа: <code>{f"{gas_price:.5f}".rstrip("0").rstrip(".")} GWei</code> \n'
                         f'💳 Комиссия: <code>{f"{trx_fee:.9f}".rstrip("0")} {native_currency}</code></strong> '
@@ -368,11 +368,12 @@ async def buttons_withdraw_handler(call: CallbackQuery, state: FSMContext):
 			withdraw_in_usd = usd_balance * (1 - 1 / (usd_balance * 100))
 			user_amount = balance / usd_balance * withdraw_in_usd
 
+	user_amount = f"{user_amount:.12f}".rstrip("0").rstrip(".")
 	logger.info(f'Пользователь {user_id} выбрал {percent}% для вывода. Сумма - {user_amount} {currency}.')
 	pending_crypto_withdraw_amount[user_id] = user_amount
 	withdraw_amount_to_show[user_id] = user_amount
 
-	text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{f"{user_amount:.12f}".rstrip("0").rstrip(".")} {currency}</code></i>'
+	text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{user_amount} {currency}</code></i>'
 	if coin_price is not None:
 		coin_price = await coin_price(currency)
 		usd_value = round(float(user_amount) * coin_price, 2)
