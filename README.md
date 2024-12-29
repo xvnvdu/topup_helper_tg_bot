@@ -5,7 +5,7 @@
 
 <table>
   <tr>
-    <th align="left">RU 🇷🇺</th>
+    <th align="left">🇷🇺 RU</th>
   </tr>
   <tr>
     <td>
