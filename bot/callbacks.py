@@ -19,10 +19,10 @@ from .transactions_log import sorted_payments
 from .support.admin_side import cancel_answer
 from .support.user_side import cancel_application, bot_support
 from .main_bot import (users_data_dict, users_payments_dict, CustomPaymentState, SendToFriend, pending_sending_amount, 
-                       Support, pending_sending_id, pending_sending_message, pending_payments, pending_payments_info)
-from .bot_buttons import (menu_keyboard, account_keyboard, payment_keyboard, crypto_keyboard, back_to_support_keyboard, 
-                         stars_keyboard, yk_payment_keyboard, zero_transactions_keyboard, skip_message_keyboard,
-                         log_buttons, back_to_account_keyboard, step_back_keyboard, confirm_sending_keyboard, chains_keyboard, successful_approve)
+                       Support, pending_sending_id, pending_sending_message, pending_payments, pending_payments_info, change_user_data)
+from .bot_buttons import (menu_keyboard, account_keyboard, payment_keyboard, crypto_keyboard, back_to_support_keyboard, stars_keyboard, 
+                          yk_payment_keyboard, zero_transactions_keyboard, skip_message_keyboard, log_buttons, back_to_account_keyboard, 
+                          step_back_keyboard, confirm_sending_keyboard, chains_keyboard, successful_approve)
 
 
 ''' ОСНОВНЫЕ КОЛЛБЭКИ ОТ КНОПОК '''
@@ -31,18 +31,7 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
     user_id = call.from_user.id
     user_data = users_data_dict[user_id]
 
-    phone = int(user_data['Phone']) // 10**4
-    balance = user_data['Balance']
-    registration_date = user_data['Registration']
-    volume = user_data['Funding_volume']
-
-    days_count = (datetime.now() - datetime.strptime(registration_date, '%d.%m.%Y')).days
-    if days_count % 10 == 1 and days_count % 100 != 11:
-        days = 'день'
-    elif days_count % 10 in [2, 3, 4] and not (11 <= days_count % 100 <= 19):
-        days = 'дня'
-    else:
-        days = 'дней'
+    await change_user_data(None, call, user_data)
 
     current_page = await state.get_data()
     current_page = current_page.get('current_page', 0)
@@ -54,6 +43,20 @@ async def main_callbacks(call: CallbackQuery, bot: Bot, state: FSMContext):
 
     if call.data == 'account':
         logger.info(f'Пользователь {user_id} вошел в аккаунт.')
+        
+        phone = int(user_data['Phone']) // 10**4
+        balance = user_data['Balance']
+        registration_date = user_data['Registration']
+        volume = user_data['Funding_volume']
+
+        days_count = (datetime.now() - datetime.strptime(registration_date, '%d.%m.%Y')).days
+        if days_count % 10 == 1 and days_count % 100 != 11:
+            days = 'день'
+        elif days_count % 10 in [2, 3, 4] and not (11 <= days_count % 100 <= 19):
+            days = 'дня'
+        else:
+            days = 'дней'
+            
         await call.message.edit_text(f'<strong>Мой аккаунт</strong>\n\n'
                                      f'⚙️ <strong>ID:</strong> <code>{call.from_user.id}</code>\n'
                                      f'🔒 <strong>Телефон:</strong> <code>{phone}****</code>\n'

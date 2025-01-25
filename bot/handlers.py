@@ -19,7 +19,7 @@ from .send_to_user import amount_input, id_input, message_input
 from .support.user_side import message_to_support, continue_application, send_application
 from .bot_buttons import (menu_keyboard, account_keyboard, payment_keyboard, crypto_keyboard, withdraw_crypto, back_to_chain_keyboard)
 from .main_bot import (users_data, users_payments, users_data_dict, users_payments_dict, Support, save_data, save_payments, save_total,
-                       total_values, get_time, id_generator, CustomPaymentState, SendToFriend, pending_payments, pending_payments_info)
+                       total_values, get_time, id_generator, CustomPaymentState, SendToFriend, pending_payments, pending_payments_info, change_user_data)
 
 
 router = Router()
@@ -32,6 +32,7 @@ async def command_menu(message: Message):
     user_id = message.from_user.id
     user_data = users_data_dict[user_id]
     
+    await change_user_data(message, None, user_data)
     logger.info(f'Пользователь {user_id} воспользовался командой /menu.')
     
     if user_data['Is_verified']:
@@ -48,6 +49,7 @@ async def command_account(message: Message):
     user_id = message.from_user.id
     user_data = users_data_dict[user_id]
 
+    await change_user_data(message, None, user_data)
     logger.info(f'Пользователь {user_id} воспользовался командой /account.')
     
     phone = int(user_data['Phone']) // 10**4
@@ -82,6 +84,7 @@ async def command_balance(message: Message):
     user_id = message.from_user.id
     user_data = users_data_dict.get(user_id)
     
+    await change_user_data(message, None, user_data)
     logger.info(f'Пользователь {user_id} воспользовался командой /balance.')
     
     if user_data['Is_verified']:
@@ -98,6 +101,7 @@ async def command_crypto(message: Message, bot: Bot):
     user_id = message.from_user.id
     user_data = users_data_dict[user_id]
     
+    await change_user_data(message, None, user_data)
     logger.info(f'Пользователь {user_id} воспользовался командой /crypto.')
     
     call = CallbackQuery(id='fake_id', from_user=message.from_user,
