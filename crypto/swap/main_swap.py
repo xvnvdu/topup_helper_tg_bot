@@ -1,4 +1,3 @@
-from ast import Pass
 from typing import Any
 
 from aiogram.fsm.context import FSMContext

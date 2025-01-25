@@ -1,7 +1,9 @@
+import json, random, string
+
 from typing import Any
 from logger import logger
-import json, random, string
 from datetime import datetime
+from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.state import StatesGroup, State
 
 
@@ -115,3 +117,22 @@ async def save_application() -> Any:
 
 async def id_generator() -> Any:
     return ''.join(random.choices(string.ascii_letters + string.digits, k=7))
+
+
+''' ПРОВЕРКА НА ИЗМЕНЕНИЕ ДАННЫХ ПОЛЬЗОВАТЕЛЯ '''
+
+async def change_user_data(message: Message | None, call: CallbackQuery | None, user_data: dict):
+    action = message or call
+    
+    name = action.from_user.first_name
+    surname = action.from_user.last_name
+    username = action.from_user.username
+
+    if name != user_data['Name']:
+        user_data['Name'] = name
+    if surname != user_data['Surname']:
+        user_data['Surname'] = surname
+    if username != user_data['Username']:
+        user_data['Username'] = username
+    
+    await save_data()
