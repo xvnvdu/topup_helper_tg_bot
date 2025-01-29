@@ -4,14 +4,15 @@ from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from logger import logger
+from bot.interface_language.core import phrases
 from bot.main_bot import id_generator, users_data_dict, users_payments_dict, total_values, save_data, save_total, save_payments
 from bot.bot_buttons import (crypto_amount_to_withdraw, successful_wallet_withdrawal, try_again_withdraw_amount, change_withdraw_amount, 
-                             try_again_address_input_keyboard, confirm_withdrawal)
+							 try_again_address_input_keyboard, confirm_withdrawal)
 
 from .models import Networks, Currencies, DefaultABIs
 from .amount_handler import choose_amount
 from .main_crypto import (CryptoPayments, pending_crypto_withdraw_amount, pending_chain_withdraw, pending_withdrawal_trx, 
-                          pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, pending_user_balance_in_usd, pending_trx_id, get_time)
+						  pending_currency_to_withdraw, pending_user_balance, withdraw_amount_to_show, withdraw_amount_usd_value, ok_to_withdraw, pending_withdraw_info, pending_user_balance_in_usd, pending_trx_id, get_time)
 
 
 ''' ВЫБОР МОНЕТЫ ДЛЯ ВЫВОДА '''
@@ -19,6 +20,7 @@ from .main_crypto import (CryptoPayments, pending_crypto_withdraw_amount, pendin
 async def withdraw_choice(call: CallbackQuery):
 	user_id = call.from_user.id
 	user_data = users_data_dict[user_id]
+	lang = user_data['Language']
  
 	ok_to_withdraw[user_id] = False
  
@@ -30,15 +32,18 @@ async def withdraw_choice(call: CallbackQuery):
 
 	text = await choose_amount(user_id, chain, currency, wallet_address, 'withdraw')
 
-	await call.message.edit_text(text=text, parse_mode='HTML', reply_markup=crypto_amount_to_withdraw(chain, currency))
+	await call.message.edit_text(text=text, parse_mode='HTML', reply_markup=crypto_amount_to_withdraw(chain, currency, lang))
 
 
 ''' ВЫБОР СУММЫ ДЛЯ ВЫВОДА '''
 
 async def amount_to_withdraw(message: Message, state: FSMContext):
 	user_id = message.from_user.id
+	user_data = users_data_dict[user_id]
 	user_amount = message.text.replace(',', '.')	
 	balance = pending_user_balance[user_id]
+	lang = user_data['Language']
+	lang_settings = phrases(lang)
 
 	ok_to_withdraw[user_id] = False
  
@@ -54,19 +59,18 @@ async def amount_to_withdraw(message: Message, state: FSMContext):
   
 		if float(amount) <= 0:
 			logger.warning(f'Пользователь {user_id} ввел некорректную сумму при выводе крипты: {amount}.')
-			await message.answer('<strong>⚠️ Сумма введена некорректно.</strong>\n<i>Нельзя вывести '
-                                 'сумму отрицательную или равную нулю.</i>', parse_mode='HTML',
-                                 reply_markup=try_again_withdraw_amount(chain, currency))
+			await message.answer(lang_settings.withdraw_less_than_zero, parse_mode='HTML',
+								 reply_markup=try_again_withdraw_amount(chain, currency, lang))
 			await state.clear()
 
 		elif float(balance) < float(amount):
 			logger.warning(f'У пользователя {user_id} недостаточно средств для вывода крипты: {balance} - {amount}.')
-			await message.answer('<strong>⚠️ У вас не хватает средств для вывода.</strong>\n<i>Уменьшите сумму '
-                                 'или пополните баланс.</i>', parse_mode='HTML', reply_markup=try_again_withdraw_amount(chain, currency))
+			await message.answer(lang_settings.withdraw_not_enough_funds, 
+						parse_mode='HTML', reply_markup=try_again_withdraw_amount(chain, currency, lang))
 			await state.clear()
    
 		else:
-			text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{amount} {currency}</code></i>'
+			text = f'{lang_settings.withdraw_enter_address}\n\n{lang_settings.withdrawing} <code>{amount} {currency}</code>'
 			if coin_price is not None:
 				coin_price = await coin_price(currency)
 				usd_value = round(float(amount) * coin_price, 2)
@@ -74,29 +78,26 @@ async def amount_to_withdraw(message: Message, state: FSMContext):
 				text += f' <i>({usd_value}$)</i>'
 				if usd_value < 0.01:
 					logger.warning(f'Пользователь {user_id} попытался вывести менее 0.01$: {usd_value}.')
-           
-					await message.answer('<strong>⚠️ Слишком маленькое значение.</strong>\n'
-							'<i>Попробуйте увеличить сумму для вывода, она должна быть эквивалентна не менее 0.01$</i>', 
-							parse_mode='HTML', reply_markup=try_again_withdraw_amount(chain, currency))
+		   
+					await message.answer(lang_settings.withdraw_less_than_001, 
+							parse_mode='HTML', reply_markup=try_again_withdraw_amount(chain, currency, lang))
 					await state.clear()
 					return
 			else:
 				if float(amount) < 0.01:
 					logger.warning(f'Пользователь {user_id} попытался вывести менее 0.01$: {amount}.')
-     
-					await message.answer('<strong>⚠️ Слишком маленькое значение.</strong>\n'
-							'<i>Попробуйте увеличить сумму для вывода, она должна быть эквивалентна не менее 0.01$</i>', 
-							parse_mode='HTML', reply_markup=try_again_withdraw_amount(chain, currency))
+	 
+					await message.answer(lang_settings.withdraw_less_than_001, 
+							parse_mode='HTML', reply_markup=try_again_withdraw_amount(chain, currency, lang))
 					await state.clear()
 					return
  
-			await message.answer(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
+			await message.answer(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency, lang))
 			await state.set_state(CryptoPayments.address_withdraw_to)
-    
+	
 	except ValueError:
 		logger.warning(f'Пользователь {user_id} ввел некорректную сумму для вывода крипты.')
-		await message.answer('<strong>⚠️ Сумма введена некорректно, попробуйте еще раз.</strong>', 
-                             parse_mode='HTML', reply_markup=try_again_withdraw_amount(chain, currency))
+		await message.answer(lang_settings.incorrect_amount, parse_mode='HTML', reply_markup=try_again_withdraw_amount(chain, currency, lang))
 		await state.clear()
 
 
@@ -104,6 +105,9 @@ async def amount_to_withdraw(message: Message, state: FSMContext):
 
 async def try_another_address(call: CallbackQuery):
 	user_id = call.from_user.id
+	user_data = users_data_dict[user_id]
+	lang = user_data['Language']
+	lang_settings = phrases(lang)
  
 	chain = pending_chain_withdraw[user_id]
 	amount = withdraw_amount_to_show[user_id]
@@ -111,14 +115,14 @@ async def try_another_address(call: CallbackQuery):
 
 	ok_to_withdraw[user_id] = False
 
-	text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{amount} {currency}</code></i>'
+	text = f'{lang_settings.withdraw_enter_address}\n\n{lang_settings.withdrawing} <code>{amount} {currency}</code>'
  
 	if user_id in withdraw_amount_usd_value:
 		usd_value = withdraw_amount_usd_value[user_id]
 		text += f' <i>({usd_value}$)</i>'
 
 	logger.info(f'Пользователь {user_id} повторно указывает адрес для вывода крипты.')
-	await call.message.edit_text(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
+	await call.message.edit_text(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency, lang))
 
 
 ''' ВВОД АДРЕСА И РАССЧЕТ КОМИССИИ '''
@@ -126,11 +130,12 @@ async def try_another_address(call: CallbackQuery):
 async def address_input(message: Message, state: FSMContext):
 	user_id = message.from_user.id
 	user_data = users_data_dict[user_id]
+	lang = user_data['Language']
+	lang_settings = phrases(lang)
 
 	reciever = message.text
 	await message.delete()
-	loading = await message.answer('🕓 <strong>Рассчитываю комиссию.</strong>\n'
-                                '<i>Это может занять некоторое время...</i>', parse_mode='HTML')
+	loading = await message.answer(lang_settings.calculating_fees, parse_mode='HTML')
  
 	sender = user_data['Wallet_address']
 
@@ -154,7 +159,7 @@ async def address_input(message: Message, state: FSMContext):
  
 	if is_valid:
 		reciever = Web3.to_checksum_address(reciever)
-     
+	 
 		tx = {
 		'nonce': web3.eth.get_transaction_count(sender),
 		'from': sender,
@@ -166,7 +171,7 @@ async def address_input(message: Message, state: FSMContext):
 		if currency != native_currency:
 			try:
 				logger.info(f'Пользователь {user_id} выводит ненативную монету: Сеть - {chain} | Монета - {currency}.')
-    
+	
 				abi = DefaultABIs.Token
 				contract_address = Currencies.currencies[chain][currency].contract
 				decimals = Currencies.currencies[chain][currency].decimals
@@ -175,7 +180,7 @@ async def address_input(message: Message, state: FSMContext):
 
 				transfer_func = contract.functions.transfer(reciever, value)
 				tx = transfer_func.build_transaction(tx)
-    
+	
 			except Exception as e:
 				logger.error(f'Произошла ошибка при создании транзакции для ERC20 токена: {e}.')
    
@@ -193,9 +198,8 @@ async def address_input(message: Message, state: FSMContext):
 			tx['gas'] = estimated_gas
 	
 		except Exception as e:
-			await loading.edit_text('<strong>⚠️ Недостаточно средств для оплаты комиссии.</strong>\n'
-						'<i>Уменьшите сумму вывода или попробуйте позже.</i>', 
-								parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
+			await loading.edit_text(lang_settings.withdraw_not_enough_fees, 
+								parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency, lang))
    
 			logger.warning(f'У пользователя {user_id} недостаточно средств для оплаты комиссии: Сеть - {chain} | Ошибка - {e}.')
 	
@@ -210,35 +214,35 @@ async def address_input(message: Message, state: FSMContext):
 		trx_fee_usd = float(trx_fee) * await return_usd_fee(native_currency)
 
 		if reciever.lower() == sender.lower():
-			await loading.edit_text('<strong>⚠️ Вы не можете перевести самому себе.</strong>', 
-                             parse_mode='HTML', reply_markup=try_again_address_input_keyboard)
+			await loading.edit_text(lang_settings.withdraw_to_yourself, parse_mode='HTML', reply_markup=try_again_address_input_keyboard(lang))
 			logger.warning(f'Пользователь {user_id} попытался вывести крипту сам себе: Сеть - {chain} | Монета - {currency}.')
    
 		else:
 			ok_to_withdraw[user_id] = True
-			await loading.edit_text(f'<strong>🌐 Сеть перевода: <code>{chain}</code>\n'
-                        f'💸 Сумма перевода: <code>{amount_to_show} {currency}</code></strong>{add_usd_value}\n'
-                        f'<strong>📒 Получатель: <code>{reciever}</code>\n\n'
-                        f'⛽️ Цена газа: <code>{f"{gas_price:.5f}".rstrip("0").rstrip(".")} GWei</code> \n'
-                        f'💳 Комиссия: <code>{f"{trx_fee:.9f}".rstrip("0")} {native_currency}</code></strong> '
-                        f'<i>({f"{trx_fee_usd:.5f}".rstrip("0")}$)</i>\n\n'
-                        f'<strong>Подтверждаете?</strong>', parse_mode='HTML', reply_markup=confirm_withdrawal(trx_id))
+			await loading.edit_text(f'{lang_settings.withdraw_network} <code>{chain}</code>\n'
+						f'{lang_settings.withdraw_amount} <code>{amount_to_show} {currency}</code>{add_usd_value}\n'
+						f'{lang_settings.withdraw_reciever} <code>{reciever}</code>\n\n'
+						f'{lang_settings.gas_price} <code>{f"{gas_price:.5f}".rstrip("0").rstrip(".")} GWei</code> \n'
+						f'{lang_settings.trx_fee} <code>{f"{trx_fee:.9f}".rstrip("0")} {native_currency}</code> '
+						f'<i>({f"{trx_fee_usd:.5f}".rstrip("0")}$)</i>\n\n{lang_settings.do_you_confirm}', 
+      					parse_mode='HTML', reply_markup=confirm_withdrawal(trx_id, lang))
    
 			logger.info(f'Пользователь {user_id} подтверждает вывод крипты: Сеть - {chain} | Сумма - {amount_to_show} {currency} | Газ - {gas_price}.')
 	else:
-		await loading.edit_text('<strong>⚠️ Адрес введен некорректно.</strong>\n'
-                       '<i>Проверьте указанный адрес и попробуйте еще раз.</i>', 
-                             parse_mode='HTML', reply_markup=try_again_address_input_keyboard)
+		await loading.edit_text(lang_settings.incorrect_address, parse_mode='HTML', reply_markup=try_again_address_input_keyboard(lang))
 		logger.warning(f'Пользователь {user_id} ввел некорректный адрес вывода: {reciever}.')
 		await state.clear()
-    
+	
 
 ''' ПОДТВЕРЖДЕНИЕ ВЫВОДА '''
 
 async def withdrawal_confirmed(call: CallbackQuery):
 	user_id = call.from_user.id
+	user_data = users_data_dict[user_id]
+	lang = user_data['Language']
+	lang_settings = phrases(lang)
+ 
 	user_payments = users_payments_dict[user_id]['Transactions']
-
 	logger.info(f'Пользователь {user_id} подтвердил вывод средств.')
 
 	today, time_now = await get_time()
@@ -259,14 +263,13 @@ async def withdrawal_confirmed(call: CallbackQuery):
 	except Exception as e:
 		connected = True
 		trx_hash = False
-		await call.message.edit_text('⚠️ <strong>Произошла ошибка, попробуйте позже.</strong>', 
-                               parse_mode='HTML', reply_markup=None)
+		await call.message.edit_text(lang_settings.error_message, parse_mode='HTML', reply_markup=None)
 		logger.critical(f'Ошибка при выводе средств: {e} | Пользователь {user_id}.')
 
 	if trx_hash:
 		connected = True
 		pending_withdraw_info[user_id] = (f' Перевод <a href ="{exp_link}/tx/{trx_hash}">{chain}</a> '
-                                    f'— <code>{f"{amount_crypto:.12f}".rstrip("0").rstrip(".")} {coin}</code>')
+									f'— <code>{f"{float(amount_crypto):.12f}".rstrip("0").rstrip(".")} {coin}</code>')
 
 		trx_info = pending_withdraw_info[user_id]
 		trx_id = pending_trx_id[user_id]
@@ -280,11 +283,11 @@ async def withdrawal_confirmed(call: CallbackQuery):
 
 		if today not in user_payments:
 			user_payments[today] = {time_now: {'RUB': None,
-                                      		   'USD': amount_usd,
+									  		   'USD': amount_usd,
 									  		   'transaction_num': trx_num,
 									  		   'type': trx_info,
 											   'explorer': explorer,
-                                               'explorer_link': exp_link,
+											   'explorer_link': exp_link,
 											   'hash': trx_hash, 
 									  		   'trx_id': trx_id}}
 			await save_payments()
@@ -294,24 +297,21 @@ async def withdrawal_confirmed(call: CallbackQuery):
 											  'transaction_num': trx_num,
 											  'type': trx_info,
 											  'explorer': explorer,
-                                              'explorer_link': exp_link,
+											  'explorer_link': exp_link,
 											  'hash': trx_hash,
 											  'trx_id': trx_id}
 			await save_payments()
 
-		await call.message.edit_text(f'🎉 <strong>Успешный перевод!</strong>\n'
-                                        f'<i>Средства скоро поступят на адрес получателя.</i>\n\n'
-                                        f'<strong>Хэш: <pre>{trx_hash}</pre></strong>',
-                                        parse_mode='HTML', reply_markup=successful_wallet_withdrawal(exp_link, explorer, trx_hash), 
-                                        disable_web_page_preview=True)
+		await call.message.edit_text(f'{lang_settings.withdraw_succesful}\n\n{lang_settings.trx_hash} <pre>{trx_hash}</pre>',
+										parse_mode='HTML', reply_markup=successful_wallet_withdrawal(exp_link, explorer, trx_hash, lang), 
+										disable_web_page_preview=True)
 		await temp_delete(user_id)
 		ok_to_withdraw[user_id] = False
 		logger.info(f'Пользователь {user_id} успешно осуществил вывод средств. Хэш - {trx_hash}')
   
 	if not connected:
 		logger.critical(f'Произошла ошибка при инициализации транзакции! | Пользователь {user_id}.')
-		await  call.message.edit_text('⛔️ <strong>Произошла ошибка при инициализации транзакции!\n'
-										'<i>Повторите попытку позже.</i></strong>', parse_mode='HTML')
+		await  call.message.edit_text(lang_settings.transaction_error, parse_mode='HTML')
 
 
 ''' ИНИЦИАЦИЯ ВЫВОДА '''
@@ -343,6 +343,9 @@ async def withdraw_crypto(call: CallbackQuery, chain: str):
 
 async def buttons_withdraw_handler(call: CallbackQuery, state: FSMContext):
 	user_id = call.from_user.id
+	user_data = users_data_dict[user_id]
+	lang = user_data['Language']
+	lang_settings = phrases(lang)
 
 	percent = int(str(call.data).split('_')[0])
 	balance = pending_user_balance[user_id]
@@ -357,9 +360,8 @@ async def buttons_withdraw_handler(call: CallbackQuery, state: FSMContext):
 	amount_in_usd = usd_balance * percent / 100
 
 	if amount_in_usd < 0.01:
-		await call.message.edit_text(f'<strong>⚠️ Слишком маленькое значение.</strong>\n'
-				f'<i>Сумма для вывода должна быть эквивалентна не менее 0.01$</i>', 
-				parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
+		await call.message.edit_text(lang_settings.withdraw_less_than_001, 
+				parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency, lang))
 		await state.clear()
 		return
 
@@ -373,47 +375,49 @@ async def buttons_withdraw_handler(call: CallbackQuery, state: FSMContext):
 	pending_crypto_withdraw_amount[user_id] = user_amount
 	withdraw_amount_to_show[user_id] = user_amount
 
-	text = f'<strong>📒 Введите адрес для пополнения</strong>\n\n<i>Вы переводите <code>{user_amount} {currency}</code></i>'
+	text = f'{lang_settings.withdraw_enter_address}\n\n{lang_settings.withdrawing} <code>{user_amount} {currency}</code>'
 	if coin_price is not None:
 		coin_price = await coin_price(currency)
 		usd_value = round(float(user_amount) * coin_price, 2)
 		withdraw_amount_usd_value[user_id] = usd_value
 		text += f' <i>({usd_value}$)</i>'
 
-	await call.message.edit_text(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency))
+	await call.message.edit_text(text, parse_mode='HTML', reply_markup=change_withdraw_amount(chain, currency, lang))
 
 
 ''' ПРОВЕРКА НА УСТАРЕВШИЕ ТРАНЗАКЦИИ '''
 
 async def try_to_withdraw(call: CallbackQuery):
-    user_id = call.from_user.id
-    
-    if ok_to_withdraw[user_id]:
-        if f'{call.data}'.split('_')[3] == pending_trx_id[user_id]:
-            await withdrawal_confirmed(call)
-        else:
-            await withdrawal_declined(call)
-    else:
-        await withdrawal_declined(call)
+	user_id = call.from_user.id
+	
+	if ok_to_withdraw[user_id]:
+		if f'{call.data}'.split('_')[3] == pending_trx_id[user_id]:
+			await withdrawal_confirmed(call)
+		else:
+			await withdrawal_declined(call)
+	else:
+		await withdrawal_declined(call)
 
 
 ''' УСТАРЕВШАЯ ТРАНЗАКЦИЯ '''
 
 async def withdrawal_declined(call: CallbackQuery):
-    user_id = call.from_user.id
-    
-    logger.warning(f'Пользователь {user_id} воспользовался устаревшей транзакцией для вывода.')
-    await  call.message.edit_text('⛔️ <strong>Данные транзакции устарели!</strong>\n'
-                                          '<i>Попробуйте инициировать новую.</i>', parse_mode='HTML')
+	user_id = call.from_user.id
+	user_data = users_data_dict[user_id]
+	lang = user_data['Language']
+	lang_settings = phrases(lang)
+ 
+	logger.warning(f'Пользователь {user_id} воспользовался устаревшей транзакцией для вывода.')
+	await  call.message.edit_text(lang_settings.old_transaction, parse_mode='HTML')
 
 
 ''' УДАЛЕНИЕ ВРЕМЕННЫХ ХРАНИЛИЩ '''
 
 async def temp_delete(user_id: int):
-    del (pending_withdraw_info[user_id],
-         pending_chain_withdraw[user_id], 
-         pending_withdrawal_trx[user_id], 
-         withdraw_amount_to_show[user_id], 
-         withdraw_amount_usd_value[user_id], 
-         pending_currency_to_withdraw[user_id], 
-         pending_crypto_withdraw_amount[user_id])
+	del (pending_withdraw_info[user_id],
+		 pending_chain_withdraw[user_id], 
+		 pending_withdrawal_trx[user_id], 
+		 withdraw_amount_to_show[user_id], 
+		 withdraw_amount_usd_value[user_id], 
+		 pending_currency_to_withdraw[user_id], 
+		 pending_crypto_withdraw_amount[user_id])

@@ -6,7 +6,7 @@ from .main_bot import users_payments_dict
 
 ''' ГЕНЕРАЦИЯ ЛОГА ТРАНЗАКЦИЙ '''
 
-async def sorted_payments(call: CallbackQuery):
+async def sorted_payments(call: CallbackQuery, language: str):
     user_id = call.from_user.id
     user_transactions_info = users_payments_dict[user_id]['Transactions']
     sorted_dates = sorted(user_transactions_info.keys(), key=lambda date: datetime.strptime(date, '%d.%m.%Y'), reverse=True)
@@ -25,6 +25,21 @@ async def sorted_payments(call: CallbackQuery):
             trx_type = trx['type']
             usd_amount = trx['USD']
             price = f'{rub_amount}₽' if usd_amount is None else f'{usd_amount}$'
+
+            if language == 'EN':
+                translations = {
+                    'Перевод <': 'Withdraw <',
+                    'Пополнение <': 'Top up <',
+                    'Пополнение баланса — Stars': 'Top up — Stars',
+                    'Пополнение баланса — ID:': 'Top up — ID',
+                    'Перевод баланса — ID:': 'Transfer — ID',
+                    'Обмен': 'Swap'
+                }
+
+                for ru, en in translations.items():
+                    if ru in trx_type:
+                        trx_type = trx_type.replace(ru, en)
+                        break 
 
             time_input = datetime.strptime(time, '%H:%M:%S')
             time_output = time_input.strftime('%H:%M')

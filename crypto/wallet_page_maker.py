@@ -1,13 +1,15 @@
 import asyncio
-from decimal import Decimal, ROUND_DOWN
 
 from logger import logger
-from bot.main_bot import users_data_dict
 from aiogram.types import CallbackQuery
+from decimal import Decimal, ROUND_DOWN
 
+from bot.main_bot import users_data_dict
+from bot.interface_language.core import phrases
+
+from .price_parser import return_asset_price
 from .models import DefaultABIs, Networks, contracts
 from .get_balance_func import get_token_balance, get_native_balance
-from .price_parser import return_asset_price
 
 
 abi = DefaultABIs.Token
@@ -122,9 +124,12 @@ async def base_mainnet(call: CallbackQuery):
 
 ''' ГЕНЕРАЦИЯ ГЛАВНОЙ СТРАНИЦЫ '''
 
-async def main_page(call: CallbackQuery):
+async def main_page(call: CallbackQuery, language: str):
     user_id = call.from_user.id
     user_data = users_data_dict[user_id]
+    
+    lang = phrases(language)
+    
     address = user_data['Wallet_address']
 
     balances = await asyncio.gather(
@@ -152,11 +157,8 @@ async def main_page(call: CallbackQuery):
 
     total_balance = round(sum(balances), 4)
 
-    main_page_text = (f'<strong>📗 Мой адрес: <code>{address}</code>\n\n'
-                      f'💸 Мои активы: <code>{total_balance}$</code></strong>\n\n'
-                      f'<i>Данный EVM адрес был присвоен вам в момент регистрации, '
-                      f'он статичен и никогда не изменится. Через бота вы можете '
-                      f'совершать операции в четырех доступных вам блокчейнах, для '
-                      f'этого воспользуйтесь кнопками ниже:\n\n</i>')
+    main_page_text = (f'{lang.cryptowallet_address} <code>{address}</code>\n\n'
+                      f'{lang.cryptowallet_assets} <code>{total_balance}$</code>\n\n'
+                      f'{lang.evm_explained}')
 
     return main_page_text
