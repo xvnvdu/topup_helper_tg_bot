@@ -9,7 +9,8 @@ from .page_texts import user_page_text, admin_page_text
 
 from config import admin
 from logger import logger
-from bot.main_bot import Support, get_time, support_data_dict, id_generator
+from bot.interface_language.core import phrases
+from bot.main_bot import Support, get_time, support_data_dict, id_generator, users_data_dict
 from bot.bot_buttons import continue_application_keyboard, answer_message_keyboard, support_keyboard, cancel_application_keyboard
 
 
@@ -19,21 +20,25 @@ user_locks = {}
 ''' ГЛАВНАЯ СТРАНИЦА РАЗДЕЛА ПОДДЕРЖКИ '''
 
 async def bot_support(call: CallbackQuery):
-    await call.message.edit_text('<strong>Поддержка TopUp Helper 🤖</strong>\n\n'
-                                 '<b>Здесь вы можете оставить свое сообщение, если:</b>\n'
-                                 '🐞 <i>Столкнулись с багом\n'
-                                 '⛓️‍💥 Обнаружили уязвимость\n'
-                                 '🛠 Возникли проблемы с работой бота\n'
-                                 '💬 Есть идеи и предложения по улучшению\n'
-                                 '❔ Появились вопросы (любые, касательно бота)</i>\n\n'
-                                 '❗️Рекомендуется ознакомиться с правилами ниже', parse_mode='HTML', 
-                                 reply_markup=support_keyboard)
+    user_id = call.from_user.id
+    user_data = users_data_dict[user_id]
+    lang = user_data['Language']
+    lang_settings = phrases(lang)
+    
+    await call.message.edit_text(lang_settings.support_main_page, parse_mode='HTML', reply_markup=support_keyboard(lang))
     
 
 ''' ОТПРАВКА НОВОГО СООБЩЕНИЯ В ПОДДЕРЖКУ '''
 
 async def message_to_support(message: Message, bot: Bot, state: FSMContext):
     user_id = message.from_user.id
+    user_data = users_data_dict[user_id]
+    lang = user_data['Language']
+    
+    admin_data = users_data_dict[admin]
+    admin_lang = admin_data['Language']
+    
+    lang_settings = phrases(lang)
     file = message.document
     doc_id = None
     
@@ -57,22 +62,21 @@ async def message_to_support(message: Message, bot: Bot, state: FSMContext):
         if user_message is None:
             user_message = ''
         
-        text = await admin_page_text(number, user_id, user_message)
+        text = await admin_page_text(number, user_id, user_message, admin_lang)
         today, time_now = await get_time()
         
         await save_question(user_id, number, today, time_now, user_message, doc_id)
             
-        await message.answer(f'✅ <b>Сообщение отправлено!</b> #{number}\n<i>Поддержка свяжется с вами в ближайшее время.\n'
-                            'Не рекомендуется создавать новые обращения по одному вопросу, дождитесь ответа и, '
-                            'при необходимости, продолжайте диалог в рамках одного обращения.</i>', parse_mode='HTML')
+        await message.answer(f'{lang_settings.support_message_delivered} #{number}\n\n'
+                             f'{lang_settings.support_message_delivered_recommendation}', parse_mode='HTML')
         await state.clear()
         
         if doc_id is not None:
             await bot.send_document(chat_id=admin, document=doc_id, caption=text, parse_mode='HTML', 
-                                reply_markup=answer_message_keyboard(user_id, number, today, time_now))
+                                reply_markup=answer_message_keyboard(user_id, number, today, time_now, admin_lang))
         else:
             await bot.send_message(chat_id=admin, text=text, parse_mode='HTML', 
-                                    reply_markup=answer_message_keyboard(user_id, number, today, time_now))
+                                    reply_markup=answer_message_keyboard(user_id, number, today, time_now, admin_lang))
     del user_locks[user_id]
     
     
@@ -88,16 +92,20 @@ async def continue_application(call: CallbackQuery, state: FSMContext):
     today = call.data.split('_')[4]
     time_now = call.data.split('_')[5]
     
+    user_data = users_data_dict[int(user_id)]
+    lang = user_data['Language']
+    lang_settings = phrases(lang)
+    
     await state.update_data(user_id=user_id)
     await state.update_data(number=number)
     await state.update_data(today=today)
     
     if file is not None:
-        await call.message.edit_caption(caption=f'<b>✉️ Сообщение в рамках обращения</b> #{number}', parse_mode='HTML', 
-                                        reply_markup=cancel_application_keyboard(user_id, number, today, time_now))
+        await call.message.edit_caption(caption=f'{lang_settings.communication_reference} #{number}', parse_mode='HTML', 
+                                        reply_markup=cancel_application_keyboard(user_id, number, today, time_now, lang))
     else:
-        await call.message.edit_text(text=f'<b>✉️ Сообщение в рамках обращения</b> #{number}', parse_mode='HTML', 
-                                     reply_markup=cancel_application_keyboard(user_id, number, today, time_now))
+        await call.message.edit_text(text=f'{lang_settings.communication_reference} #{number}', parse_mode='HTML', 
+                                     reply_markup=cancel_application_keyboard(user_id, number, today, time_now, lang))
     
     
  
@@ -109,17 +117,20 @@ async def cancel_application(call: CallbackQuery, state: FSMContext):
     today = call.data.split('_')[4]
     time_now = call.data.split('_')[5]
     
+    user_data = users_data_dict[int(user_id)]
+    lang = user_data['Language']
+    
     file = call.message.document
     
     support_message = support_data_dict[int(user_id)]['Dialogs'][number][today][time_now]['answer']
-    text = await user_page_text(number, support_message)
+    text = await user_page_text(number, support_message, lang)
     
     if file is not None:
         await call.message.edit_caption(caption=text, parse_mode='HTML', 
-                                        reply_markup=continue_application_keyboard(user_id, number, today, time_now))
+                                        reply_markup=continue_application_keyboard(user_id, number, today, time_now, lang))
     else:
         await call.message.edit_text(text=text, parse_mode='HTML', 
-                                     reply_markup=continue_application_keyboard(user_id, number, today, time_now))
+                                     reply_markup=continue_application_keyboard(user_id, number, today, time_now, lang))
     
     await state.clear()
  
@@ -128,6 +139,12 @@ async def cancel_application(call: CallbackQuery, state: FSMContext):
  
 async def send_application(message: Message, bot: Bot, state: FSMContext):
     user_id = message.from_user.id
+    user_data = users_data_dict[user_id]
+    lang = user_data['Language']
+    
+    admin_data = users_data_dict[admin]
+    admin_lang = admin_data['Language']
+    
     file = message.document
     doc_id = None
     
@@ -152,7 +169,7 @@ async def send_application(message: Message, bot: Bot, state: FSMContext):
         if application is None:
             application = ''
 
-        text = await admin_page_text(number, user_id, application)
+        text = await admin_page_text(number, user_id, application, admin_lang)
 
         logger.info(f'Сообщение от пользователя {user_id} | Обращение {number}: {application}')
 
@@ -161,12 +178,15 @@ async def send_application(message: Message, bot: Bot, state: FSMContext):
 
         if doc_id is not None:
             await bot.send_document(chat_id=admin, document=doc_id, caption=text, parse_mode='HTML', 
-                                reply_markup=answer_message_keyboard(user_id, number, today, time_now))
+                                reply_markup=answer_message_keyboard(user_id, number, today, time_now, admin_lang))
         else:
             await bot.send_message(chat_id=admin, text=text, parse_mode='HTML', 
-                                reply_markup=answer_message_keyboard(user_id, number, today, time_now))
+                                reply_markup=answer_message_keyboard(user_id, number, today, time_now, admin_lang))
 
-        await message.answer(f'✅ Ответ в рамках обращения #{number} отправлен!')
+        if lang == 'RU':
+            await message.answer(f'✅ Ответ в рамках обращения #{number} отправлен!')
+        else:
+            await message.answer(f'✅ Answer in communication #{number} is sent!')
         await state.clear()
         
     del user_locks[user_id]
