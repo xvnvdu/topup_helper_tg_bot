@@ -151,7 +151,7 @@ class Networks:
 
         'Optimism': Network(
             name = 'Optimism',
-            rpc = 'https://op-pokt.nodies.app',
+            rpc = 'https://optimism-rpc.publicnode.com',
             chain_id = 10,
             coin_symbol = 'ETH',
             explorer = 'Optimistic.etherscan.io',
