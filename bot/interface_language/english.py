@@ -88,6 +88,9 @@ class EnglishLanguage:
     signing_error = '<b>⚠️ An error occurred while signing the transaction, please try again.</b>'
     skip = 'Skip →'
     stars_payment = '<b>⭐️ To top up your balance, click the button below:</b>'
+    successful_payment = ('<b>Payment successful 🎉</b>\n<i>Note: '
+                         'do not use the same link twice, '
+                         'your payment will not be credited!</i>')
     support = '🆘 Support'
     support_main_page = ('<b>TopUp Helper Support 🤖</b>\n\n'
                          '<b>You can leave your message here if:</b>\n'

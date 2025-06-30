@@ -131,16 +131,16 @@ async def command_crypto(message: Message, bot: Bot):
 @router.message(Command('start'))
 async def start(message: Message):
     user_id = message.from_user.id
-    
+
     logger.info(f'Пользователь {user_id} воспользовался командой /start.')
-    
+
     if user_id not in users_data_dict:
         user = {'ID': user_id, 'Name': message.from_user.first_name,
                 'Surname': message.from_user.last_name,
                 'Username': message.from_user.username, 'Phone': None,
                 'Is_verified': False, 'Registration': None, 'Balance': 0,
                 'Funding_volume': 0, 'Language': 'RU'}
-        
+
         user_payments = {'ID': user_id,
                         'Transactions': {}}
 
@@ -156,24 +156,13 @@ async def start(message: Message):
                              'Разобраться с криптой сможет даже твоя бабушка, '
                              'в этом нет абсолютно ничего сложного. Чего ты ждешь? '
                              'Давай познакомимся поближе.', parse_mode='HTML')
-        await message.answer('<strong>Hi! 🤖</strong>\n'
-                             'I will help you with cryptocurrency transfers '
-                             "if you don't have a personal wallet or exchange.\n\n"
-                             '<strong>With my help you will be able to:</strong>\n'
-                             '<i>• Fund your balance with cryptocurrency on the website\n'
-                             '• Make a transfer to another user\n'
-                             '• Pay for goods/services with crypto</i>\n'
-                             'And much more!\n\n'
-                             'Even your granny will be able to understand crypto, '
-                             'there is absolutely nothing complicated about it. What are you waiting for?  '
-                             "Let's get to know each other better.", parse_mode='HTML')
         users_data.append(user)
         users_payments.append(user_payments)
-        
+
         await save_data()
         await save_payments()
         await save_total()
-        
+
         users_payments_dict[user_id] = user_payments
         users_data_dict[user_id] = user
 
@@ -199,10 +188,10 @@ async def successful_payment(message: Message):
     user_id = message.from_user.id
     user_data = users_data_dict[user_id]
     user_payment = users_payments_dict[user_id]['Transactions']
+    lang = user_data['Language']
+    lang_settings = phrases(lang)
     
-    await message.answer('<strong>Оплата успешная 🎉</strong>\n<i>Примечание: '
-                         'не используйте одну и ту же ссылку на пополнение дважды, '
-                         'ваша оплата не будет засчитана!</i>', parse_mode='HTML')
+    await message.answer(lang_settings.successful_payment, parse_mode='HTML')
     
     if message.from_user.id in pending_payments:
         amount = pending_payments[user_id]
@@ -273,9 +262,6 @@ async def check_contact(message: Message):
         await message.answer('<b>Номер телефона успешно подтвержден!</b> 🎉\n'
                              'Вы можете пользоваться ботом.\n\n<i>Для смены языка перейдите в '
                              'раздел "Мой аккаунт".</i>', parse_mode='HTML', reply_markup=remove_button)
-        await message.answer('<b>Your number successfully confirmed!</b> 🎉\n'
-                             'You can use the bot.\n\n<i>To change the language, '
-                             'go to the “Мой аккаунт” section.</i>', parse_mode='HTML', reply_markup=remove_button)
         logger.info(f'Пользователь {user_id} подтвердил номер телефона.')
         await command_menu(message)
     else:
@@ -454,7 +440,7 @@ async def id_input_handler(message: Message, state: FSMContext):
 @router.message(SendToFriend.message_input)
 async def message_input_handler(message: Message, state: FSMContext):
     await message_input(message, state)
-    
+
 
 ''' ХЭНДЛЕР ДЛЯ ПОПОЛНЕНИЯ БАЛАНСА '''
 
@@ -532,11 +518,6 @@ async def confirm_phone(message: Message):
                              'Вам необходимо подтвердить <b>номер телефона</b>'
                              ' для того, чтобы начать пользоваться ботом.\n\n'
                              'Для подтверждения нажмите кнопку ниже.',
-                             parse_mode='HTML', reply_markup=markup)
-        await message.answer('☎️ <b>Phone number is not confirmed</b>\n\n'
-                             'You need to confirm your <b>phone number</b>'
-                             ' in order to start using the bot.\n\n'
-                             'To confirm, click the button below.',
                              parse_mode='HTML', reply_markup=markup)
     else:
         return
